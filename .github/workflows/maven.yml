@@ -26,6 +26,6 @@ jobs:
       run: mvn vertx:package -f pom.xml
     - uses: actions/upload-artifact@v2
       with:
-        name: xtrike
+        name: tree-new-bee
         path: /home/runner/work/tree-new-bee/tree-new-bee/target/tree-new-bee*
         retention-days: 1
