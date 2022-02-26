@@ -35,7 +35,7 @@ public class TcpServerVerticleTest {
         .onFailure(testCtx::failNow))
       .onFailure(testCtx::failNow);
 
-    assert testCtx.awaitCompletion(5, TimeUnit.SECONDS);
+    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
@@ -64,7 +64,7 @@ public class TcpServerVerticleTest {
         .onFailure(testCtx::failNow))
       .onFailure(testCtx::failNow);
 
-    assert testCtx.awaitCompletion(5, TimeUnit.SECONDS);
+    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
@@ -115,11 +115,14 @@ public class TcpServerVerticleTest {
   record TreeNewBeeClient(NetSocket socket, int id, List<JsonObject> msgList) {
     void receiveMsg(Buffer buffer) {
       try {
-        JsonObject msg = new JsonObject(buffer);
-        System.out.println("Client " + id + " Received message: " + msg);
-        msgList.add(msg);
+        String[] jsonStrings = buffer.toString().split("\r\n");
+        for(String jsonString:jsonStrings){
+          JsonObject msg = new JsonObject(jsonString);
+          System.out.println("Client " + id + " Received message: " + msg);
+          msgList.add(msg);
+        }
       } catch (Exception e) {
-        System.out.println("Client " + id + " parse message err: " + e.getMessage());
+        System.out.println("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
       }
     }
   }

@@ -23,7 +23,7 @@ jobs:
         distribution: 'adopt-hotspot'
         cache: maven
     - name: Build with Maven
-      run: mvn vertx:package -f pom.xml
+      run: mvn package -f pom.xml
     - uses: actions/upload-artifact@v2
       with:
         name: tree-new-bee
