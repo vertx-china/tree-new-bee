@@ -14,7 +14,7 @@ public class TcpServerVerticle extends AbstractVerticle {
 
   @Override
   public void start() throws Exception {
-      Integer port = vertx.getOrCreateContext().config().getInteger("TcpServerVerticle.port", 32167);
+      Integer port = config().getInteger("TcpServerVerticle.port", 32167);
       vertx.createNetServer()
         .connectHandler(socket -> {
           var id = UUID.randomUUID().toString();
