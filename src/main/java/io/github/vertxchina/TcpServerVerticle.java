@@ -14,7 +14,8 @@ public class TcpServerVerticle extends AbstractVerticle {
 
   @Override
   public void start() throws Exception {
-    vertx.createNetServer()
+      Integer port = config().getInteger("TcpServerVerticle.port", 32167);
+      vertx.createNetServer()
         .connectHandler(socket -> {
           var id = UUID.randomUUID().toString();
           var json = new JsonObject().put("id", id);
@@ -37,9 +38,9 @@ public class TcpServerVerticle extends AbstractVerticle {
           socket.write(json.toString() + "\r\n");
           socket.closeHandler((e) -> idSocketBiMap.inverse().remove(socket));
         })
-        .listen(32167, res -> {
+        .listen(port, res -> {
           if (res.succeeded()) {
-            System.out.println("listen to port 32167");
+            System.out.println("listen to port " + port);
           } else {
             System.out.println("netserver start failed");
           }
