@@ -38,11 +38,7 @@ public class TcpServerVerticle extends AbstractVerticle {
                   && !messageJson.getValue("nickname").toString().isBlank()) {
                 var nickname = messageJson.getValue("nickname").toString().trim();
                 netSocketNicknameMap.put(socket, nickname);
-                var jsonArrays = new JsonArray();
-                for (var nn : netSocketNicknameMap.values()) {
-                  jsonArrays.add(nn);
-                }
-                publishSpeak(new JsonObject().put("nicknames", jsonArrays));
+                updateUsersList();
               }
 
               if (netSocketNicknameMap.containsKey(socket)) {
@@ -50,7 +46,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               }
 
               if (messageJson.containsKey("message")) {
-                publishSpeak(messageJson);
+                publishMessage(messageJson);
               }
             } catch (Exception e) {
               e.printStackTrace();
@@ -63,6 +59,7 @@ public class TcpServerVerticle extends AbstractVerticle {
           socket.closeHandler((e) -> {
             idSocketBiMap.inverse().remove(socket);
             netSocketNicknameMap.remove(socket);
+            updateUsersList();
           });
         })
         .listen(port, res -> {
@@ -74,7 +71,15 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
   }
 
-  private void publishSpeak(JsonObject jsonMsg) {
+  private void updateUsersList(){
+    var jsonArrays = new JsonArray();
+    for (var nn : netSocketNicknameMap.values()) {
+      jsonArrays.add(nn);
+    }
+    publishMessage(new JsonObject().put("nicknames", jsonArrays));
+  }
+
+  private void publishMessage(JsonObject jsonMsg) {
     for (var receiverSocket : idSocketBiMap.values()) {
       receiverSocket.write(jsonMsg + "\r\n");
     }
