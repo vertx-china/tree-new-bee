@@ -20,9 +20,9 @@ public class TcpServerVerticle extends AbstractVerticle {
   Map<NetSocket, String> netSocketNicknameMap = new HashMap<>();
 
   @Override
-  public void start() throws Exception {
-      Integer port = config().getInteger("TcpServerVerticle.port", 32167);
-      vertx.createNetServer()
+  public void start() {
+    Integer port = config().getInteger("TcpServerVerticle.port", 32167);
+    vertx.createNetServer()
         .connectHandler(socket -> {
           var id = UUID.randomUUID().toString();
           var json = new JsonObject().put("id", id);
@@ -34,22 +34,22 @@ public class TcpServerVerticle extends AbstractVerticle {
               messageJson.put("id", id);
               messageJson.put("time", ZonedDateTime.now().format(dateFormatter));
 
-              if(null != messageJson.getValue("nickname")
-                  && !messageJson.getValue("nickname").toString().isBlank()){
+              if (null != messageJson.getValue("nickname")
+                  && !messageJson.getValue("nickname").toString().isBlank()) {
                 var nickname = messageJson.getValue("nickname").toString().trim();
                 netSocketNicknameMap.put(socket, nickname);
                 var jsonArrays = new JsonArray();
-                for(var nn:netSocketNicknameMap.values()){
+                for (var nn : netSocketNicknameMap.values()) {
                   jsonArrays.add(nn);
                 }
-                publishSpeak(new JsonObject().put("nicknames",jsonArrays));
+                publishSpeak(new JsonObject().put("nicknames", jsonArrays));
               }
 
-              if(netSocketNicknameMap.containsKey(socket)){
-                messageJson.put("nickname",netSocketNicknameMap.get(socket));
+              if (netSocketNicknameMap.containsKey(socket)) {
+                messageJson.put("nickname", netSocketNicknameMap.get(socket));
               }
 
-              if(messageJson.containsKey("message")){
+              if (messageJson.containsKey("message")) {
                 publishSpeak(messageJson);
               }
             } catch (Exception e) {
@@ -74,7 +74,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
   }
 
-  private void publishSpeak(JsonObject jsonMsg){
+  private void publishSpeak(JsonObject jsonMsg) {
     for (var receiverSocket : idSocketBiMap.values()) {
       receiverSocket.write(jsonMsg + "\r\n");
     }
