@@ -28,7 +28,7 @@ public class TcpServerVerticleTest {
       .onSuccess(did -> createClients(vertx, port, 1)
         .onSuccess(ar -> sendMessages(vertx, ar).get(0)
           .onSuccess(msgList -> {
-            assert msgList.size() == 2; //一条登录后Server返回的信息，1条自己发出的消息
+            assert msgList.size() == 1; //1条自己发出的消息，登陆后响应消息不包含有message域，不统计在内
             testCtx.completeNow();
           })
           .onFailure(testCtx::failNow))
@@ -55,7 +55,7 @@ public class TcpServerVerticleTest {
           .onSuccess(cf -> cf
             .onSuccess(closed -> {
               for (Object o : closed.result().list()) {
-                assert ((List) o).size() == clientNum + 1; //一条登录后Server返回的信息，N条各个Client发出的消息
+                assert ((List) o).size() == clientNum; //N条各个Client发出的消息，仅保留有消息（message字段）的消息，登陆后的响应和退出消息不保留
               }
               testCtx.completeNow();
             })
@@ -119,7 +119,8 @@ public class TcpServerVerticleTest {
         for(String jsonString:jsonStrings){
           JsonObject msg = new JsonObject(jsonString);
           System.out.println("Client " + id + " Received message: " + msg);
-          msgList.add(msg);
+          if(msg.containsKey("message"))
+            msgList.add(msg);
         }
       } catch (Exception e) {
         System.out.println("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
