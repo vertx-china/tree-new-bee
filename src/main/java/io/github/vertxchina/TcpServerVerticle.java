@@ -34,19 +34,15 @@ public class TcpServerVerticle extends AbstractVerticle {
               messageJson.put("id", id);
               messageJson.put("time", ZonedDateTime.now().format(dateFormatter));
 
-              if(messageJson.containsKey("nickname")
-                  && messageJson.getValue("nickname") != null
-                  && !messageJson.getValue("nickname").toString().trim().isEmpty()){
+              if(null != messageJson.getValue("nickname")
+                  && !messageJson.getValue("nickname").toString().isBlank()){
                 var nickname = messageJson.getValue("nickname").toString().trim();
                 netSocketNicknameMap.put(socket, nickname);
                 var jsonArrays = new JsonArray();
                 for(var nn:netSocketNicknameMap.values()){
                   jsonArrays.add(nn);
                 }
-                var jsonObject = new JsonObject().put("nicknames",jsonArrays);
-                for (var receiverSocket : idSocketBiMap.values()) {
-                  receiverSocket.write(jsonObject + "\r\n");
-                }
+                publishSpeak(new JsonObject().put("nicknames",jsonArrays));
               }
 
               if(netSocketNicknameMap.containsKey(socket)){
@@ -54,9 +50,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               }
 
               if(messageJson.containsKey("message")){
-                for (var receiverSocket : idSocketBiMap.values()) {
-                  receiverSocket.write(messageJson + "\r\n");
-                }
+                publishSpeak(messageJson);
               }
             } catch (Exception e) {
               e.printStackTrace();
@@ -78,5 +72,11 @@ public class TcpServerVerticle extends AbstractVerticle {
             System.out.println("netserver start failed");
           }
         });
+  }
+
+  private void publishSpeak(JsonObject jsonMsg){
+    for (var receiverSocket : idSocketBiMap.values()) {
+      receiverSocket.write(jsonMsg + "\r\n");
+    }
   }
 }
