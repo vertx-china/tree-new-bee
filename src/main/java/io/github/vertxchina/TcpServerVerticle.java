@@ -27,7 +27,7 @@ public class TcpServerVerticle extends AbstractVerticle {
           var id = UUID.randomUUID().toString();
           var json = new JsonObject().put("id", id);
           idSocketBiMap.put(id, socket);
-
+          
           final var recordParser = RecordParser.newDelimited("\r\n", h -> {
             try {
               var messageJson = new JsonObject(h);
@@ -80,8 +80,10 @@ public class TcpServerVerticle extends AbstractVerticle {
   }
 
   private void publishMessage(JsonObject jsonMsg) {
+    var id = jsonMsg.getValue("id").toString();
     for (var receiverSocket : idSocketBiMap.values()) {
-      receiverSocket.write(jsonMsg + "\r\n");
+      if(receiverSocket != idSocketBiMap.get(id))
+        receiverSocket.write(jsonMsg + "\r\n");
     }
   }
 }
