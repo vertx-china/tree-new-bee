@@ -27,6 +27,7 @@ public class TcpServerVerticle extends AbstractVerticle {
           var id = UUID.randomUUID().toString();
           var json = new JsonObject().put("id", id);
           idSocketBiMap.put(id, socket);
+          netSocketNicknameMap.put(socket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
           
           final var recordParser = RecordParser.newDelimited("\r\n", h -> {
             try {
