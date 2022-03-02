@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.parsetools.RecordParser;
 
@@ -22,7 +23,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   @Override
   public void start() {
     Integer port = config().getInteger("TcpServerVerticle.port", 32167);
-    vertx.createNetServer()
+    vertx.createNetServer(new NetServerOptions().setTcpKeepAlive(true))
         .connectHandler(socket -> {
           var id = UUID.randomUUID().toString();
           var json = new JsonObject().put("id", id);
