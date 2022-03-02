@@ -46,7 +46,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               }
 
               if (messageJson.containsKey("message")) {
-                publishMessage(messageJson);
+                sendToOtherUsers(messageJson);
               }
             } catch (Exception e) {
               e.printStackTrace();
@@ -79,7 +79,13 @@ public class TcpServerVerticle extends AbstractVerticle {
     publishMessage(new JsonObject().put("nicknames", jsonArrays));
   }
 
-  private void publishMessage(JsonObject jsonMsg) {
+  private void publishMessage(JsonObject jsonMsg){
+    for (var receiverSocket : idSocketBiMap.values()) {
+      receiverSocket.write(jsonMsg + "\r\n");
+    }
+  }
+
+  private void sendToOtherUsers(JsonObject jsonMsg) {
     var id = jsonMsg.getValue("id").toString();
     for (var receiverSocket : idSocketBiMap.values()) {
       if(receiverSocket != idSocketBiMap.get(id))
