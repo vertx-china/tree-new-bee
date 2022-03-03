@@ -152,7 +152,7 @@ public class TcpServerVerticleTest {
           System.out.println("Client " + socket + " closed");
           promise.complete(client);
         });
-        vertx.setTimer(1000L, tid -> socket.close());
+        vertx.setTimer(4000L, tid -> socket.close());
       }
     }
     return closeFutures;

@@ -32,7 +32,10 @@ public class TcpServerVerticle extends AbstractVerticle {
         idSocketBiMap.put(id, socket);
         netSocketNicknameMap.put(socket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-        vertx.setTimer(3000,t -> chatLog.storedMessages().forEach(m -> socket.write(m + "\r\n")));
+        var chatLogAtThisMoment = chatLog.storedMessages();
+        vertx.setTimer(3000,t -> {
+          chatLogAtThisMoment.forEach(m -> socket.write(m + "\r\n"));
+        });
 
         final var recordParser = RecordParser.newDelimited("\r\n", h -> {
           try {
