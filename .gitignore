@@ -1,0 +1,11 @@
+**/.idea/
+**/target
+**/*.iml
+**/*.log
+**/*.log.*
+**/.classpath
+**/.factorypath
+**/.settings/
+**/.project
+**/.DS_Store
+**/metastore_db/
