@@ -19,6 +19,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
   BiMap<String, NetSocket> idSocketBiMap = HashBiMap.create();
   Map<NetSocket, String> netSocketNicknameMap = new HashMap<>();
+  MessageBuffer messageBuffer = new MessageBuffer(vertx, 30);
 
   @Override
   public void start() {
@@ -37,7 +38,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               messageJson.put("time", ZonedDateTime.now().format(dateFormatter));
 
               if (null != messageJson.getValue("nickname")
-                  && !messageJson.getValue("nickname").toString().isBlank()) {
+                  && !messageJson.getValue("nickname").toString().isEmpty()) {
                 var nickname = messageJson.getValue("nickname").toString().trim();
                 netSocketNicknameMap.put(socket, nickname);
                 updateUsersList();
@@ -49,6 +50,7 @@ public class TcpServerVerticle extends AbstractVerticle {
 
               if (messageJson.containsKey("message")) {
                 sendToOtherUsers(messageJson);
+                messageBuffer.add(messageJson);
               }
             } catch (Exception e) {
               e.printStackTrace();

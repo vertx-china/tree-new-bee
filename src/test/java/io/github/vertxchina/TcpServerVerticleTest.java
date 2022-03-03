@@ -25,15 +25,22 @@ public class TcpServerVerticleTest {
     int port = 9527;
     JsonObject config = new JsonObject().put("TcpServerVerticle.port", port);
     vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
-      .onSuccess(did -> createClients(vertx, port, 1)
-        .onSuccess(ar -> sendMessages(vertx, ar).get(0)
-          .onSuccess(msgList -> {
-            assert msgList.size() == 0; //登陆后响应消息不包含有message域，不统计在内，自身发出的消息不再发回来
-            testCtx.completeNow();
-          })
-          .onFailure(testCtx::failNow))
-        .onFailure(testCtx::failNow))
+      .compose(did -> createClients(vertx, port, 1))
+      .compose(ar -> sendMessages(vertx,ar).get(0))
+      .onSuccess(msgList -> {
+        assert msgList.size() == 0; //登陆后响应消息不包含有message域，不统计在内，自身发出的消息不再发回来
+        testCtx.completeNow();
+      })
       .onFailure(testCtx::failNow);
+//      .onSuccess(did -> createClients(vertx, port, 1)
+//        .onSuccess(ar -> sendMessages(vertx, ar).get(0)
+//          .onSuccess(msgList -> {
+//            assert msgList.size() == 0; //登陆后响应消息不包含有message域，不统计在内，自身发出的消息不再发回来
+//            testCtx.completeNow();
+//          })
+//          .onFailure(testCtx::failNow))
+//        .onFailure(testCtx::failNow))
+//      .onFailure(testCtx::failNow);
 
     assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
     if (testCtx.failed()) {
@@ -71,7 +78,7 @@ public class TcpServerVerticleTest {
     System.out.println("====> multiClientSendMessageMutuallyTest() End");
   }
 
-  private List<Future<List<JsonObject>>> sendMessages(Vertx vertx, AsyncResult<CompositeFuture> ar) {
+  private List<Future<List<JsonObject>>> sendMessages(Vertx vertx, CompositeFuture ar) {
     List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
     for (Object o : ar.result().list()) {
       if (o instanceof TreeNewBeeClient client) {
