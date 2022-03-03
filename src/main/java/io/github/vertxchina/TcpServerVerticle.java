@@ -9,6 +9,8 @@ import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.parsetools.RecordParser;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -51,7 +53,13 @@ public class TcpServerVerticle extends AbstractVerticle {
                 sendToOtherUsers(messageJson);
               }
             } catch (Exception e) {
-              e.printStackTrace();
+//              e.printStackTrace();
+//              把异常信息作为响应发回客户端，服务器端console不再printstack，将来有log之后，可以放入log，保留源码，测试时候打开
+//              StringWriter sw = new StringWriter();
+//              PrintWriter pw = new PrintWriter(sw);
+//              e.printStackTrace(pw);
+//              sw.toString();
+              socket.write(new JsonObject().put("message",e.getMessage())+"\r\n");
             }
           }).maxRecordSize(1024 * 64);
 

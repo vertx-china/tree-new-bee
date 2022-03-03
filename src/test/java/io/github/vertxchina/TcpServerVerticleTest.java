@@ -71,6 +71,49 @@ public class TcpServerVerticleTest {
     System.out.println("====> multiClientSendMessageMutuallyTest() End");
   }
 
+  @Test
+  void singleClientSendMessageErrorTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
+    System.out.println("====> singleClientSendMessageErrorTest() Start");
+    int port = 9527;
+    JsonObject config = new JsonObject().put("TcpServerVerticle.port", port);
+    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+        .onSuccess(did -> createClients(vertx, port, 1)
+            .onSuccess(ar -> sendErrorMessages(vertx, ar).get(0)
+                .onSuccess(msgList -> {
+                  assert msgList.size() == 1; //发送错误消息应返回解析错误消息
+                  var stacktrace = msgList.get(0).getString("message");
+                  System.out.println(stacktrace);
+                  testCtx.completeNow();
+                })
+                .onFailure(testCtx::failNow))
+            .onFailure(testCtx::failNow))
+        .onFailure(testCtx::failNow);
+
+    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
+    if (testCtx.failed()) {
+      throw testCtx.causeOfFailure();
+    }
+    System.out.println("====> singleClientSendMessageErrorTest() End");
+  }
+
+  private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, AsyncResult<CompositeFuture> ar) {
+    List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
+    for (Object o : ar.result().list()) {
+      if (o instanceof TreeNewBeeClient client) {
+        var socket = client.socket;
+        socket.write("fjdslkjlfa\r\n");
+        Promise<List<JsonObject>> promise = Promise.promise();
+        closeFutures.add(promise.future());
+        socket.closeHandler(v -> {
+          System.out.println("Client " + socket + " closed");
+          promise.complete(client.msgList);
+        });
+        vertx.setTimer(1000L, tid -> socket.close());
+      }
+    }
+    return closeFutures;
+  }
+
   private List<Future<List<JsonObject>>> sendMessages(Vertx vertx, AsyncResult<CompositeFuture> ar) {
     List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
     for (Object o : ar.result().list()) {
@@ -117,10 +160,11 @@ public class TcpServerVerticleTest {
       try {
         String[] jsonStrings = buffer.toString().split("\r\n");
         for(String jsonString:jsonStrings){
-          JsonObject msg = new JsonObject(jsonString);
+          JsonObject msg = new JsonObject(jsonString.trim());
           System.out.println("Client " + id + " Received message: " + msg);
-          if(msg.containsKey("message"))
+          if(msg.containsKey("message")) {
             msgList.add(msg);
+          }
         }
       } catch (Exception e) {
         System.out.println("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
