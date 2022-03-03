@@ -27,7 +27,7 @@ public class TcpServerVerticle extends AbstractVerticle {
     Integer port = config().getInteger("TcpServerVerticle.port", 32167);
     vertx.createNetServer(new NetServerOptions().setTcpKeepAlive(true))
         .connectHandler(socket -> {
-          var id = UUID.randomUUID().toString();
+          var id = UUID.randomUUID().toString().replaceAll("-","");
           var json = new JsonObject().put("id", id);
           idSocketBiMap.put(id, socket);
           netSocketNicknameMap.put(socket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
