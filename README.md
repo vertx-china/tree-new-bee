@@ -59,7 +59,9 @@ Json Array 可用来拼接不同的消息为一个消息，例如：
 ```json
 {
   "message" : [
-    {"message":"这是写在图片前面的文字"}, {"message":"http://i.17173cdn.com/2fhnvk/YWxqaGBf/cms3/EJUEJhbnjBEDkEz.png"},{"message":"这是写在图片后面的文字"}
+    {"message":"这是写在图片前面的文字"}, 
+    {"message":"http://i.17173cdn.com/2fhnvk/YWxqaGBf/cms3/EJUEJhbnjBEDkEz.png"},
+    {"message":"这是写在图片后面的文字"}
   ]
 }
 ```
