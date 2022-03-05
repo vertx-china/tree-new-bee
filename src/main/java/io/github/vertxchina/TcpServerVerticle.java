@@ -42,6 +42,7 @@ public class TcpServerVerticle extends AbstractVerticle {
             var messageJson = new JsonObject(h);
             messageJson.put("id", id);
             messageJson.put("time", ZonedDateTime.now().format(dateFormatter));
+            messageJson.put("timestamp", System.currentTimeMillis());
 
             if (null != messageJson.getValue("nickname")
               && !messageJson.getValue("nickname").toString().isEmpty()) {
