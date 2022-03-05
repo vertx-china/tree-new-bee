@@ -28,6 +28,7 @@ public class TcpServerVerticle extends AbstractVerticle {
     vertx.createNetServer(new NetServerOptions().setTcpKeepAlive(true))
       .connectHandler(socket -> {
         var id = UUID.randomUUID().toString().replaceAll("-", "");
+        socket.write(new JsonObject().put("id", id) + "\r\n");//先将id发回
         idSocketBiMap.put(id, socket);
         netSocketNicknameMap.put(socket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
@@ -37,6 +38,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
 
         final var recordParser = RecordParser.newDelimited("\r\n", h -> {
+          System.out.println(h.toString());
           try {
             var messageJson = new JsonObject(h);
             messageJson.put("id", id);
@@ -57,8 +59,6 @@ public class TcpServerVerticle extends AbstractVerticle {
               sendToOtherUsers(messageJson);
               chatLog.add(messageJson);
             }
-
-            socket.write(messageJson + "\r\n");
           } catch (Exception e) {
 //              e.printStackTrace();
 //              把异常信息作为响应发回客户端，服务器端console不再printstack，将来有log之后，可以放入log，保留源码，测试时候打开
@@ -68,6 +68,7 @@ public class TcpServerVerticle extends AbstractVerticle {
 //              sw.toString();
             socket.write(new JsonObject().put("message", e.getMessage()) + "\r\n");
           }
+
         }).maxRecordSize(1024 * 64);
 
         socket.handler(recordParser);
