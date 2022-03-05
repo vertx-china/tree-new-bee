@@ -13,8 +13,8 @@ import java.util.List;
  */
 public class MessageBuffer {
     private final Deque<JsonObject> fifo = new LinkedList<>();
-    private final Vertx vertx;
-    private final int bufferSize;
+    protected final Vertx vertx;
+    protected final int bufferSize;
 
     public MessageBuffer(Vertx vertx, int bufferSize) {
         this.vertx = vertx;
@@ -36,15 +36,15 @@ public class MessageBuffer {
         return new ArrayList<>(fifo);
     }
 
-    private void fromPersisted() {
+    protected void fromPersisted() {
         //TODO
     }
 
-    private void persist() {
+    protected void persist() {
         //TODO
     }
 
-    private boolean ensurePersist() {
+    protected boolean ensurePersist() {
         //TODO
         return false;
     }

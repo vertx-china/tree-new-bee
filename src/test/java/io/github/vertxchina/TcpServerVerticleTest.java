@@ -2,6 +2,7 @@ package io.github.vertxchina;
 
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
 import io.vertx.junit5.VertxExtension;
@@ -118,6 +119,55 @@ public class TcpServerVerticleTest {
     }
     System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
+
+
+  @Test
+  void fsMessageSaveTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
+    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    int chatLogSize = 5;
+    FSMessageBuffer fsMessageBuffer = new FSMessageBuffer(vertx, chatLogSize);
+    for (int i = 0; i < 5; i++) {
+      fsMessageBuffer.add(new JsonObject().put("message", i));
+    }
+    fsMessageBuffer.fromPersisted();
+    assert fsMessageBuffer.storedMessages().size() == chatLogSize;
+    for (int i = 0; i < fsMessageBuffer.storedMessages().size(); i++) {
+      assert fsMessageBuffer.storedMessages().get(i).getInteger("message") == i ;
+    }
+    vertx.fileSystem().deleteBlocking(FSMessageBuffer.TEMP_STORE_PATH);
+    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+  }
+
+  @Test
+  void chatFsMessageSaveTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
+    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    int port = 7654;
+    int prevClientSendMsgNum = 10;
+    int chatLogSize = 5;
+    JsonObject config = new JsonObject().put("TcpServerVerticle.port", port).put("TcpServerVerticle.chatLogSize", chatLogSize);
+    try {
+      vertx.fileSystem().deleteBlocking(FSMessageBuffer.TEMP_STORE_PATH);
+    } catch (Exception ignore) {
+
+    }
+    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+            .compose(did -> createClients(vertx, port, 1))
+            .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
+            .onSuccess(client -> {
+              FSMessageBuffer fsMessageBuffer = new FSMessageBuffer(vertx, chatLogSize);
+              vertx.setTimer(2000, t -> {
+                System.err.println(fsMessageBuffer.storedMessages());
+                assert fsMessageBuffer.storedMessages().size() == 5;
+              });
+            })
+            .onFailure(testCtx::failNow);
+    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
+    if (testCtx.failed()) {
+      throw testCtx.causeOfFailure();
+    }
+    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+  }
+
 
   private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
     List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();

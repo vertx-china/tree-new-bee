@@ -24,7 +24,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   @Override
   public void start() {
     Integer port = config().getInteger("TcpServerVerticle.port", 32167);
-    chatLog = new MessageBuffer(vertx, config().getInteger("TcpServerVerticle.chatLogSize", 30));
+    chatLog = new FSMessageBuffer(vertx, config().getInteger("TcpServerVerticle.chatLogSize", 30));
     vertx.createNetServer(new NetServerOptions().setTcpKeepAlive(true))
       .connectHandler(socket -> {
         var id = UUID.randomUUID().toString().replaceAll("-", "");
