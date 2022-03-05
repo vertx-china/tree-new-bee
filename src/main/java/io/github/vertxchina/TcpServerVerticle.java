@@ -38,7 +38,6 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
 
         final var recordParser = RecordParser.newDelimited("\r\n", h -> {
-          System.out.println(h.toString());
           try {
             var messageJson = new JsonObject(h);
             messageJson.put("id", id);
