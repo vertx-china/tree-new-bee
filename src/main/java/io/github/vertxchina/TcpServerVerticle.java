@@ -38,6 +38,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
 
         final var recordParser = RecordParser.newDelimited("\r\n", h -> {
+          System.out.println(h.toString());
           try {
             var messageJson = new JsonObject(h);
             messageJson.put("id", id);
@@ -67,11 +68,13 @@ public class TcpServerVerticle extends AbstractVerticle {
 //              sw.toString();
             socket.write(new JsonObject().put("message", e.getMessage()) + "\r\n");
           }
+
+          socket.write(json + "\r\n");
+
         }).maxRecordSize(1024 * 64);
 
         socket.handler(recordParser);
 
-        socket.write(json.toString() + "\r\n");
         socket.closeHandler((e) -> {
           idSocketBiMap.inverse().remove(socket);
           netSocketNicknameMap.remove(socket);
