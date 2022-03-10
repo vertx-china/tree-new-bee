@@ -21,10 +21,12 @@ public class WebsocketServerVerticle extends AbstractVerticle {
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
   BiMap<String, ServerWebSocket> idSocketBiMap = HashBiMap.create();
   Map<ServerWebSocket, String> netSocketNicknameMap = new HashMap<>();
+  MessageBuffer chatLog;
 
   @Override
   public void start() {
     Integer port = config().getInteger("WebsocketServer.port", 32168);
+    chatLog = new MessageBuffer(vertx, config().getInteger("WebsocketServer.chatLogSize", 30));
     vertx.createHttpServer()
       .webSocketHandler(webSocket -> {
         var id = UUID.randomUUID().toString().replaceAll("-", "");
@@ -33,10 +35,10 @@ public class WebsocketServerVerticle extends AbstractVerticle {
         idSocketBiMap.put(id, webSocket);
         netSocketNicknameMap.put(webSocket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-        /*var chatLogAtThisMoment = chatLog.storedMessages();
+        var chatLogAtThisMoment = chatLog.storedMessages();
         vertx.setTimer(3000,t -> {
-          chatLogAtThisMoment.forEach(m -> socket.write(m + "\r\n"));
-        });*/
+          chatLogAtThisMoment.forEach(m -> webSocket.write(m.toBuffer().appendString("\r\n")));
+        });
         webSocket.handler(RecordParser.newDelimited("\r\n", h -> {
           System.out.println(h.toString());
           try {
@@ -57,7 +59,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
 
             if (messageJson.containsKey("message")) {
               sendToOtherUsers(messageJson);
-//              chatLog.add(messageJson);
+              chatLog.add(messageJson);
             }
           } catch (Exception e) {
             webSocket.write(new JsonObject().put("message", e.getMessage()).toBuffer().appendString("\r\n"));

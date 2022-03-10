@@ -2,8 +2,8 @@ package io.github.vertxchina;
 
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.NetSocket;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.Test;
@@ -93,7 +93,7 @@ class WebsocketServerVerticleTest {
     int port = 9527;
     int prevClientSendMsgNum = 10;
     int chatLogSize = 5;
-    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("WebsocketServerVerticle.chatLogSize", chatLogSize);
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("WebsocketServer.chatLogSize", chatLogSize);
     vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
@@ -123,7 +123,7 @@ class WebsocketServerVerticleTest {
     for (Object o : ar.list()) {
       if (o instanceof TnbWebSocketClient client) {
         var socket = client.socket;
-        socket.write("fjdslkjlfa\r\n");
+        socket.write(Buffer.buffer("fjdslkjlfa\r\n"));
         Promise<List<JsonObject>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
@@ -163,8 +163,8 @@ class WebsocketServerVerticleTest {
     for (int i = 0; i < num; i++) {
       var clientId = i;
       createClientFutures.add(
-        vertx.createNetClient()
-          .connect(port, "localhost")
+        vertx.createHttpClient()
+          .webSocket(port, "localhost", "/")
           .map(s -> new TnbWebSocketClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
           .onSuccess(client -> {
             System.out.println("Client " + clientId + " Connected!");
@@ -176,7 +176,7 @@ class WebsocketServerVerticleTest {
     return CompositeFuture.all(createClientFutures);
   }
 
-  record TnbWebSocketClient(NetSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
+  record TnbWebSocketClient(WebSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
     void receiveMsg(Buffer buffer) {
       try {
         String[] jsonStrings = buffer.toString().split("\r\n");
@@ -196,7 +196,7 @@ class WebsocketServerVerticleTest {
       socket.write(new JsonObject()
         .put("time", System.currentTimeMillis())
         .put("message", msg)
-        .put("fromClientId", id).toString() + "\r\n");
+        .put("fromClientId", id).toBuffer().appendString("\r\n"));
       sendMsgList.add(msg);
     }
   }
