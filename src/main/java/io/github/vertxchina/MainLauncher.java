@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 public class MainLauncher extends AbstractVerticle {
   @Override
   public void start(Promise<Void> startPromise) {
-    vertx.deployVerticle("io.github.vertxchina.TcpServerVerticle");
+    vertx.deployVerticle(TcpServerVerticle.class.getName());
+    vertx.deployVerticle(WebsocketServerVerticle.class.getName());
   }
 }

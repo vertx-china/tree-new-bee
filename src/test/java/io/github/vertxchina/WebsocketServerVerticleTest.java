@@ -14,17 +14,17 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Leibniz on 2022/02/25 10:27 PM
+ * @author Leibniz on 2022/03/10 1:18 PM
  */
 @ExtendWith(VertxExtension.class)
-public class TcpServerVerticleTest {
+class WebsocketServerVerticleTest {
 
   @Test
   void singleClientSendMessageTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))
       .onSuccess(client -> {
@@ -41,18 +41,17 @@ public class TcpServerVerticleTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   void multiClientSendMessageMutuallyTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 6666;
     int clientNum = 3;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, clientNum))
       .compose(cf -> CompositeFuture.all(cast(sendMessages(vertx, cf, 1))))
       .onSuccess(closed -> {
         for (Object o : closed.result().list()) {
-          assert ((TreeNewBeeClient) o).receivedMsgList.size() == clientNum - 1; //N条其他Clients发出的消息，仅保留有消息（message字段）的消息，登陆后的响应和退出消息不保留，另外自身发送的消息不再返回
+          assert ((TnbWebSocketClient) o).receivedMsgList.size() == clientNum - 1; //N条其他Clients发出的消息，仅保留有消息（message字段）的消息，登陆后的响应和退出消息不保留，另外自身发送的消息不再返回
         }
         testCtx.completeNow();
       })
@@ -69,8 +68,8 @@ public class TcpServerVerticleTest {
   void singleClientSendMessageErrorTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
@@ -94,8 +93,8 @@ public class TcpServerVerticleTest {
     int port = 9527;
     int prevClientSendMsgNum = 10;
     int chatLogSize = 5;
-    JsonObject config = new JsonObject().put("TcpServer.port", port).put("TcpServer.chatLogSize", chatLogSize);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("WebsocketServerVerticle.chatLogSize", chatLogSize);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
       .compose(client -> {
@@ -122,7 +121,7 @@ public class TcpServerVerticleTest {
   private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
     List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
     for (Object o : ar.list()) {
-      if (o instanceof TreeNewBeeClient client) {
+      if (o instanceof TnbWebSocketClient client) {
         var socket = client.socket;
         socket.write("fjdslkjlfa\r\n");
         Promise<List<JsonObject>> promise = Promise.promise();
@@ -137,16 +136,16 @@ public class TcpServerVerticleTest {
     return closeFutures;
   }
 
-  private List<Future<TreeNewBeeClient>> sendMessages(Vertx vertx, CompositeFuture ar, int msgNum) {
-    List<Future<TreeNewBeeClient>> closeFutures = new ArrayList<>();
+  private List<Future<TnbWebSocketClient>> sendMessages(Vertx vertx, CompositeFuture ar, int msgNum) {
+    List<Future<TnbWebSocketClient>> closeFutures = new ArrayList<>();
     for (Object o : ar.list()) {
-      if (o instanceof TreeNewBeeClient client) {
+      if (o instanceof TnbWebSocketClient client) {
         var clientId = client.id;
         var socket = client.socket;
         for (int i = 0; i < msgNum; i++) {
           client.sendMsg("Hello gays! I'm client " + clientId);
         }
-        Promise<TreeNewBeeClient> promise = Promise.promise();
+        Promise<TnbWebSocketClient> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
           System.out.println("Client " + socket + " closed");
@@ -166,7 +165,7 @@ public class TcpServerVerticleTest {
       createClientFutures.add(
         vertx.createNetClient()
           .connect(port, "localhost")
-          .map(s -> new TreeNewBeeClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
+          .map(s -> new TnbWebSocketClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
           .onSuccess(client -> {
             System.out.println("Client " + clientId + " Connected!");
             client.socket.handler(client::receiveMsg);
@@ -177,7 +176,7 @@ public class TcpServerVerticleTest {
     return CompositeFuture.all(createClientFutures);
   }
 
-  record TreeNewBeeClient(NetSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
+  record TnbWebSocketClient(NetSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
     void receiveMsg(Buffer buffer) {
       try {
         String[] jsonStrings = buffer.toString().split("\r\n");
@@ -206,4 +205,5 @@ public class TcpServerVerticleTest {
   public static <T> T cast(Object obj) {
     return (T) obj;
   }
+
 }
