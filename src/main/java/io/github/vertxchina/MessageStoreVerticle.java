@@ -1,7 +1,6 @@
 package io.github.vertxchina;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.AbstractVerticle;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -11,18 +10,19 @@ import java.util.List;
 /**
  * @author Leibniz on 2022/3/3 8:18 AM
  */
-public class MessageBuffer {
-    private final Deque<JsonObject> fifo = new LinkedList<>();
-    private final Vertx vertx;
-    private final int bufferSize;
+public class MessageStoreVerticle extends AbstractVerticle {
+    private final Deque<Message> fifo = new LinkedList<>();
+    private int bufferSize;
 
-    public MessageBuffer(Vertx vertx, int bufferSize) {
-        this.vertx = vertx;
-        this.bufferSize = bufferSize;
+
+    @Override
+    public void start() {
+        this.bufferSize = config().getInteger("MessageStore.chatLogSize", 30);
         fromPersisted();
     }
 
-    public void add(JsonObject msg) {
+
+    public void add(Message msg) {
         fifo.addLast(msg);
         while (fifo.size() > bufferSize) {
             fifo.removeFirst();
@@ -32,7 +32,7 @@ public class MessageBuffer {
         }
     }
 
-    public List<JsonObject> storedMessages(){
+    public List<Message> storedMessages(){
         return new ArrayList<>(fifo);
     }
 

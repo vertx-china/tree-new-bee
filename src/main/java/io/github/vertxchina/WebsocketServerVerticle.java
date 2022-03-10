@@ -5,7 +5,6 @@ import com.google.common.collect.HashBiMap;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 
 import java.time.ZonedDateTime;
@@ -14,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.github.vertxchina.Message.*;
+
 /**
  * @author Leibniz on 2022/03/10 1:05 PM
  */
@@ -21,48 +22,42 @@ public class WebsocketServerVerticle extends AbstractVerticle {
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
   BiMap<String, ServerWebSocket> idSocketBiMap = HashBiMap.create();
   Map<ServerWebSocket, String> netSocketNicknameMap = new HashMap<>();
-  MessageBuffer chatLog;
 
   @Override
   public void start() {
     Integer port = config().getInteger("WebsocketServer.port", 32168);
-    chatLog = new MessageBuffer(vertx, config().getInteger("WebsocketServer.chatLogSize", 30));
     vertx.createHttpServer()
       .webSocketHandler(webSocket -> {
         var id = UUID.randomUUID().toString().replaceAll("-", "");
         System.out.println(id + "Connected!");
-        webSocket.write(new JsonObject().put("id", id).toBuffer().appendString("\r\n"));
+        new Message(CLIENT_ID_KEY, id).writeTo(webSocket); //先将id发回
         idSocketBiMap.put(id, webSocket);
         netSocketNicknameMap.put(webSocket, id);//先用id做昵称，避免出现无昵称的情况，避免客户端发送无昵称消息
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-        var chatLogAtThisMoment = chatLog.storedMessages();
         vertx.setTimer(3000,t -> {
-          chatLogAtThisMoment.forEach(m -> webSocket.write(m.toBuffer().appendString("\r\n")));
+//          chatLog.storedMessages().forEach(m -> webSocket.write(m.toBuffer()));
         });
-        webSocket.handler(RecordParser.newDelimited("\r\n", h -> {
+        webSocket.handler(RecordParser.newDelimited(Message.DELIM, h -> {
           System.out.println(h.toString());
           try {
-            var messageJson = new JsonObject(h);
-            messageJson.put("id", id);
-            messageJson.put("time", ZonedDateTime.now().format(dateFormatter));
+            var message = new Message(h);
+            message.initServerSide(id, ZonedDateTime.now().format(dateFormatter));
 
-            if (null != messageJson.getValue("nickname")
-              && !messageJson.getValue("nickname").toString().isEmpty()) {
-              var nickname = messageJson.getValue("nickname").toString().trim();
-              netSocketNicknameMap.put(webSocket, nickname);
+            if (message.hasNickName()) {
+              netSocketNicknameMap.put(webSocket, message.nickName());
               updateUsersList();
             }
 
             if (netSocketNicknameMap.containsKey(webSocket)) {
-              messageJson.put("nickname", netSocketNicknameMap.get(webSocket));
+              message.setNickName(netSocketNicknameMap.get(webSocket));
             }
 
-            if (messageJson.containsKey("message")) {
-              sendToOtherUsers(messageJson);
-              chatLog.add(messageJson);
+            if (message.hasMessage()) {
+              sendToOtherUsers(message);
+//              chatLog.add(message);
             }
           } catch (Exception e) {
-            webSocket.write(new JsonObject().put("message", e.getMessage()).toBuffer().appendString("\r\n"));
+            new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(webSocket);
           }
         }).maxRecordSize(1024 * 64));
 
@@ -77,23 +72,19 @@ public class WebsocketServerVerticle extends AbstractVerticle {
 
   private void updateUsersList() {
     var jsonArrays = new JsonArray();
-    for (var nn : netSocketNicknameMap.values()) {
-      jsonArrays.add(nn);
-    }
-    publishMessage(new JsonObject().put("nicknames", jsonArrays));
+    netSocketNicknameMap.values().forEach(jsonArrays::add);
+    publishMessage(new Message(NICKNAME_KEY, jsonArrays));
   }
 
-  private void publishMessage(JsonObject jsonMsg) {
-    for (var receiverSocket : idSocketBiMap.values()) {
-      receiverSocket.write(jsonMsg.toBuffer().appendString("\r\n"));
-    }
+  private void publishMessage(Message msg) {
+    idSocketBiMap.values().forEach(msg::writeTo);
   }
 
-  private void sendToOtherUsers(JsonObject jsonMsg) {
-    var id = jsonMsg.getValue("id").toString();
+  private void sendToOtherUsers(Message msg) {
+    var id = msg.messageId();
     for (var receiverSocket : idSocketBiMap.values()) {
       if (receiverSocket != idSocketBiMap.get(id))
-        receiverSocket.write(jsonMsg.toBuffer().appendString("\r\n"));
+        msg.writeTo(receiverSocket);
     }
   }
 }
