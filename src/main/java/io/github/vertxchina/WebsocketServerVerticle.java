@@ -24,7 +24,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(WebsocketServerVerticle.class);
   public static final String PROTOCOL = "WEBSOCKET";
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
-  SocketWriteHolder<ServerWebSocket> socketHolder = new SocketWriteHolder<>();
+  SocketWriteHolder<ServerWebSocket> socketHolder = new SocketWriteHolder<>((socket, message)->socket.writeTextMessage(message.toString()));
 
   @Override
   public void start(Promise<Void> startPromise) {

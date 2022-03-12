@@ -20,6 +20,11 @@ import static io.github.vertxchina.Message.NICKNAME_KEY;
 public class SocketWriteHolder<S extends WriteStream<Buffer>> {
   BiMap<String, S> idSocketBiMap = HashBiMap.create();
   Map<S, String> netSocketNicknameMap = new HashMap<>();
+  SocketWriter<S> socketWriter;
+
+  public SocketWriteHolder(SocketWriter<S> socketWriter) {
+    this.socketWriter = socketWriter;
+  }
 
   static String generateClientId(){
     return UUID.randomUUID().toString().replaceAll("-", "");
@@ -55,24 +60,15 @@ public class SocketWriteHolder<S extends WriteStream<Buffer>> {
 
   void publishMessage(Message msg) {
     idSocketBiMap.values().forEach(socket -> {
-      if(socket instanceof ServerWebSocket webSocket){
-        webSocket.writeTextMessage(msg.toString());
-      }else if(socket instanceof NetSocket netSocket){
-        netSocket.write(msg.toBuffer().appendString("\r\n"));
-      }
+      socketWriter.write(socket,msg);
     });
   }
 
   void sendToOtherUsers(Message msg) {
     var id = msg.messageId();
     for (var receiverSocket : idSocketBiMap.values()) {
-      if (receiverSocket != idSocketBiMap.get(id)){
-        if(receiverSocket instanceof ServerWebSocket webSocket){
-          webSocket.writeTextMessage(msg.toString());
-        }else if(receiverSocket instanceof NetSocket netSocket){
-          netSocket.write(msg.toBuffer().appendString("\r\n"));
-        }
-      }
+      if(receiverSocket != idSocketBiMap.get(id))
+        socketWriter.write(receiverSocket, msg);
     }
   }
 }

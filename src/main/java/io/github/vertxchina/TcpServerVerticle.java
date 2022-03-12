@@ -2,6 +2,7 @@ package io.github.vertxchina;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.net.NetServerOptions;
@@ -21,8 +22,8 @@ public class TcpServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(TcpServerVerticle.class);
   public static final String PROTOCOL = "TCP";
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
-  SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>();
   public static final String DELIM = "\r\n";
+  SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>((socket, message) -> socket.write(message.toBuffer().appendString(DELIM)));
 
   @Override
   public void start(Promise<Void> startPromise) {
