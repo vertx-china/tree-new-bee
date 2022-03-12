@@ -1,6 +1,7 @@
 package io.github.vertxchina;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.net.NetServerOptions;
@@ -23,7 +24,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>();
 
   @Override
-  public void start() {
+  public void start(Promise<Void> startPromise) {
     Integer port = config().getInteger("TcpServer.port", 32167);
 
     vertx.createNetServer(new NetServerOptions().setTcpKeepAlive(true))
@@ -60,8 +61,14 @@ public class TcpServerVerticle extends AbstractVerticle {
         socket.closeHandler(v -> socketHolder.removeSocket(socket));
       })
       .listen(port)
-      .onSuccess(s -> log.info("TcpServer listen to port: " + port))
-      .onFailure(e -> log.error("TcpServer start failed: " + e.getMessage(), e));
+      .onSuccess(s -> {
+        log.info("TcpServer listen to port: " + port);
+        startPromise.complete();
+      })
+      .onFailure(e -> {
+        log.error("TcpServer start failed: " + e.getMessage(), e);
+        startPromise.fail(e);
+      });
     vertx.eventBus()
       .<Message>consumer(PUBLISH_MESSAGE)
       .handler(message -> {

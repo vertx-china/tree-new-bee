@@ -1,6 +1,7 @@
 package io.github.vertxchina;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.logging.Logger;
@@ -26,7 +27,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
   SocketWriteHolder<ServerWebSocket> socketHolder = new SocketWriteHolder<>();
 
   @Override
-  public void start() {
+  public void start(Promise<Void> startPromise) {
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
     vertx.createHttpServer(new HttpServerOptions())
@@ -62,8 +63,14 @@ public class WebsocketServerVerticle extends AbstractVerticle {
         webSocket.closeHandler(v -> socketHolder.removeSocket(webSocket));
       })
       .listen(port)
-      .onSuccess(s -> log.info("WebsocketServer listen to port: " + port))
-      .onFailure(e -> log.error("WebsocketServer start failed: " + e.getMessage(), e));
+      .onSuccess(s -> {
+        log.info("WebsocketServer listen to port: " + port);
+        startPromise.complete();
+      })
+      .onFailure(e -> {
+        log.error("WebsocketServer start failed: " + e.getMessage(), e);
+        startPromise.fail(e);
+      });
     vertx.eventBus()
       .<Message>consumer(PUBLISH_MESSAGE)
       .handler(message -> {
