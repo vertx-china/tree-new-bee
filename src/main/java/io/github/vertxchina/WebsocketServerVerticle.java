@@ -32,17 +32,16 @@ public class WebsocketServerVerticle extends AbstractVerticle {
     //for testing
     vertx.createHttpServer()
         .webSocketHandler(websocket -> {
-          websocket.frameHandler(frame ->{
-            if(frame.isText()){
-              System.out.println(frame.textData());
-            }
-            websocket.writeFinalTextFrame(frame.textData());
+          websocket.handler(buffer ->{
+            System.out.println(buffer.toString());
+            websocket.write(buffer);
+            websocket.close();
           });
         }).listen(32169);
 
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
-    vertx.createHttpServer(new HttpServerOptions())
+    vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024*64))
       .webSocketHandler(webSocket -> {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected Websocket Server!");
@@ -57,11 +56,11 @@ public class WebsocketServerVerticle extends AbstractVerticle {
             }
           }));
 
-        webSocket.handler(RecordParser.newDelimited(Message.DELIM, h -> {
-          log.debug("Received message raw content: " + h);
+        webSocket.handler(buffer -> {
+          log.debug("Received message raw content: " + buffer);
           try {
             String now = ZonedDateTime.now().format(dateFormatter);
-            var message = new Message(h).initServerSide(id, now, PROTOCOL);
+            var message = new Message(buffer).initServerSide(id, now, PROTOCOL);
             socketHolder.receiveMessage(webSocket, message);
             if (message.hasMessage()) {
               socketHolder.sendToOtherUsers(message);
@@ -70,7 +69,8 @@ public class WebsocketServerVerticle extends AbstractVerticle {
           } catch (Exception e) {
             new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(webSocket);
           }
-        }).maxRecordSize(1024 * 64));
+        });//todo 补充frame handler
+
 
         webSocket.closeHandler(v -> socketHolder.removeSocket(webSocket));
       })

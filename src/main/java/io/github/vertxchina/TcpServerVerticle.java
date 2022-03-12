@@ -43,11 +43,11 @@ public class TcpServerVerticle extends AbstractVerticle {
             }
           }));
 
-        socket.handler(RecordParser.newDelimited(Message.DELIM, h -> {
-          log.debug("Received message raw content: " + h);
+        socket.handler(RecordParser.newDelimited(Message.DELIM, buffer -> {
+          log.debug("Received message raw content: " + buffer);
           try {
             String now = ZonedDateTime.now().format(dateFormatter);
-            var message = new Message(h).initServerSide(id, now, PROTOCOL);
+            var message = new Message(buffer).initServerSide(id, now, PROTOCOL);
             socketHolder.receiveMessage(socket, message);
             if (message.hasMessage()) {
               socketHolder.sendToOtherUsers(message);
