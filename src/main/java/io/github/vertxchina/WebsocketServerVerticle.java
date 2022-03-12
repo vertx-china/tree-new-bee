@@ -45,14 +45,15 @@ public class WebsocketServerVerticle extends AbstractVerticle {
       .webSocketHandler(webSocket -> {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected Websocket Server!");
-        new Message(CLIENT_ID_KEY, id).writeTo(webSocket); //先将id发回
+        webSocket.writeTextMessage(new Message(CLIENT_ID_KEY, id).toString());//先将id发回
+//        new Message(CLIENT_ID_KEY, id).writeTo(webSocket); //先将id发回
         socketHolder.addSocket(id, webSocket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
         vertx.setTimer(3000, t -> vertx.eventBus()
           .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
             if (ar.succeeded()) {
-              ar.result().body().forEach(m -> webSocket.write(m.toBuffer()));
+              ar.result().body().forEach(m -> webSocket.writeTextMessage(m.toString()));
             }
           }));
 
@@ -67,12 +68,10 @@ public class WebsocketServerVerticle extends AbstractVerticle {
               vertx.eventBus().publish(PUBLISH_MESSAGE, message);
             }
           } catch (Exception e) {
-            new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(webSocket);
+            webSocket.writeTextMessage(new Message(MESSAGE_CONTENT_KEY, e.getMessage()).toString());
+//            new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(webSocket);
           }
-        });//todo 补充frame handler
-
-
-        webSocket.closeHandler(v -> socketHolder.removeSocket(webSocket));
+        }).closeHandler(v -> socketHolder.removeSocket(webSocket));//todo 补充frame handler
       })
       .listen(port)
       .onSuccess(s -> {

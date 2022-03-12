@@ -4,11 +4,13 @@ import io.github.vertxchina.codec.TnbMessageCodec;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.WebSocket;
+import io.vertx.core.http.WebSocketFrame;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @ExtendWith(VertxExtension.class)
 class WebsocketServerVerticleTest {
   static Logger log = LoggerFactory.getLogger(WebsocketServerVerticleTest.class);
-  
+
   @BeforeEach
   void init(Vertx vertx) {
     vertx.eventBus()
@@ -137,7 +139,7 @@ class WebsocketServerVerticleTest {
     for (Object o : ar.list()) {
       if (o instanceof TnbWebSocketClient client) {
         var socket = client.socket;
-        socket.write(Buffer.buffer("fjdslkjlfa\r\n"));
+        socket.writeTextMessage("fjdslkjlfa");
         Promise<List<JsonObject>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
@@ -208,10 +210,10 @@ class WebsocketServerVerticleTest {
     }
 
     void sendMsg(String msg) {
-      socket.write(new JsonObject()
+      socket.writeTextMessage(new JsonObject()
         .put("time", System.currentTimeMillis())
         .put("message", msg)
-        .put("fromClientId", id).toBuffer().appendString("\r\n"));
+        .put("fromClientId", id).toString());
       sendMsgList.add(msg);
     }
   }

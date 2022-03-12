@@ -70,6 +70,10 @@ public class Message {
     return json.toBuffer().appendString(DELIM);
   }
 
+  public String toString(){
+    return json.toString();
+  }
+
   public Message copy() {
     return new Message(this.json.copy());
   }
