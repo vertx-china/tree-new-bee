@@ -45,7 +45,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
           }));
 
         webSocket.handler(RecordParser.newDelimited(Message.DELIM, h -> {
-          log.info("Received message raw content: " + h);
+          log.debug("Received message raw content: " + h);
           try {
             String now = ZonedDateTime.now().format(dateFormatter);
             var message = new Message(h).initServerSide(id, now, PROTOCOL);

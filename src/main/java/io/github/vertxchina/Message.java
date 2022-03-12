@@ -13,8 +13,10 @@ public class Message {
   public static final String NICKNAME_KEY = "nickname";
   public static final String CLIENT_ID_KEY = "id";
   public static final String MESSAGE_CONTENT_KEY = "message";
+
   private static final String MESSAGE_ID_KEY = "id";
   private static final String RECEIVE_TIME_KEY = "time";
+  private static final String RECEIVE_TIMESTAMP_KEY = "timestamp";
   private static final String PROTOCOL_KEY = "protocol";
 
   private final JsonObject json;
@@ -35,6 +37,7 @@ public class Message {
     json.put(MESSAGE_ID_KEY, id);
     json.put(RECEIVE_TIME_KEY, time);
     json.put(PROTOCOL_KEY, protocol);
+    json.put(RECEIVE_TIMESTAMP_KEY, System.currentTimeMillis());
     return this;
   }
 
