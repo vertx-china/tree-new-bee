@@ -196,13 +196,10 @@ class WebsocketServerVerticleTest {
 
     void receiveMsg(Buffer buffer) {
       try {
-        String[] jsonStrings = buffer.toString().split("\r\n");
-        for (String jsonString : jsonStrings) {
-          JsonObject msg = new JsonObject(jsonString.trim());
-          log.info("Client " + id + " Received message: " + msg);
-          if (msg.containsKey("message")) {
-            receivedMsgList.add(msg);
-          }
+        JsonObject msg = buffer.toJsonObject();
+        log.info("Client " + id + " Received message: " + msg);
+        if (msg.containsKey("message")) {
+          receivedMsgList.add(msg);
         }
       } catch (Exception e) {
         log.info("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
