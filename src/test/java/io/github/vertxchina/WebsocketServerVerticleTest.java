@@ -1,11 +1,15 @@
 package io.github.vertxchina;
 
+import io.github.vertxchina.codec.TnbMessageCodec;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.WebSocket;
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -18,10 +22,17 @@ import java.util.concurrent.TimeUnit;
  */
 @ExtendWith(VertxExtension.class)
 class WebsocketServerVerticleTest {
+  static Logger log = LoggerFactory.getLogger(WebsocketServerVerticleTest.class);
+  
+  @BeforeEach
+  void init(Vertx vertx) {
+    vertx.eventBus()
+      .registerDefaultCodec(Message.class, new TnbMessageCodec());
+  }
 
   @Test
   void singleClientSendMessageTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
     vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
@@ -37,12 +48,12 @@ class WebsocketServerVerticleTest {
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
 
   @Test
   void multiClientSendMessageMutuallyTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 6666;
     int clientNum = 3;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
@@ -61,12 +72,12 @@ class WebsocketServerVerticleTest {
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
 
   @Test
   void singleClientSendMessageErrorTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
     vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
@@ -75,7 +86,7 @@ class WebsocketServerVerticleTest {
       .onSuccess(msgList -> {
         assert msgList.size() == 1; //发送错误消息应返回解析错误消息
         var stacktrace = msgList.get(0).getString("message");
-        System.out.println(stacktrace);
+        log.info(stacktrace);
         testCtx.completeNow();
       })
       .onFailure(testCtx::failNow);
@@ -84,28 +95,31 @@ class WebsocketServerVerticleTest {
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
 
   @Test
   void chatLogSendTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
     int prevClientSendMsgNum = 10;
     int chatLogSize = 5;
-    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("WebsocketServer.chatLogSize", chatLogSize);
-    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("MessageStore.chatLogSize", chatLogSize);
+    DeploymentOptions deploymentOptions = new DeploymentOptions().setConfig(config);
+    vertx
+      .deployVerticle(MessageStoreVerticle.class, deploymentOptions)
+      .compose(did -> vertx.deployVerticle(WebsocketServerVerticle.class, deploymentOptions))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
       .compose(client -> {
-        System.out.println("First client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
+        log.info("First client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
         assert client.sendMsgList.size() == prevClientSendMsgNum;
-        assert client.receivedMsgList.size() == 0;
+        assert client.receivedMsgList.size() <= chatLogSize;
         return createClients(vertx, port, 1);
       })
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))
       .onSuccess(client -> {
-        System.out.println("Second client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
+        log.info("Second client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
         assert client.receivedMsgList.size() == Math.min(prevClientSendMsgNum, chatLogSize); //服务器只保留最近chatLogSize条记录
         testCtx.completeNow();
       })
@@ -115,7 +129,7 @@ class WebsocketServerVerticleTest {
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }
-    System.out.println("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
+    log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
 
   private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
@@ -127,7 +141,7 @@ class WebsocketServerVerticleTest {
         Promise<List<JsonObject>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
-          System.out.println("Client " + socket + " closed");
+          log.info("Client " + socket + " closed");
           promise.complete(client.receivedMsgList);
         });
         vertx.setTimer(1000L, tid -> socket.close());
@@ -148,7 +162,7 @@ class WebsocketServerVerticleTest {
         Promise<TnbWebSocketClient> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
-          System.out.println("Client " + socket + " closed");
+          log.info("Client " + socket + " closed");
           promise.complete(client);
         });
         vertx.setTimer(4000L, tid -> socket.close());
@@ -167,28 +181,29 @@ class WebsocketServerVerticleTest {
           .webSocket(port, "localhost", "/")
           .map(s -> new TnbWebSocketClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
           .onSuccess(client -> {
-            System.out.println("Client " + clientId + " Connected!");
+            log.info("Client " + clientId + " Connected!");
             client.socket.handler(client::receiveMsg);
           })
-          .onFailure(e -> System.out.println("Failed to connect: " + e.getMessage()))
+          .onFailure(e -> log.info("Failed to connect: " + e.getMessage()))
       );
     }
     return CompositeFuture.all(createClientFutures);
   }
 
   record TnbWebSocketClient(WebSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
+
     void receiveMsg(Buffer buffer) {
       try {
         String[] jsonStrings = buffer.toString().split("\r\n");
         for (String jsonString : jsonStrings) {
           JsonObject msg = new JsonObject(jsonString.trim());
-          System.out.println("Client " + id + " Received message: " + msg);
+          log.info("Client " + id + " Received message: " + msg);
           if (msg.containsKey("message")) {
             receivedMsgList.add(msg);
           }
         }
       } catch (Exception e) {
-        System.out.println("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
+        log.info("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
       }
     }
 
@@ -206,4 +221,20 @@ class WebsocketServerVerticleTest {
     return (T) obj;
   }
 
+  //本地测试模拟client
+/*  public static void main(String... args) {
+    Vertx vertx = Vertx.vertx();
+    vertx.createHttpClient()
+      .webSocket(32168, "localhost", "/")
+      .onSuccess(webSocket -> {
+        vertx.setPeriodic(5000L, tid -> {
+          JsonObject msg = new JsonObject().put("nickName", "Leibniz").put("message", "still alive");
+          webSocket.write(msg.toBuffer());
+          log.info("Send message: " + msg);
+        });
+        webSocket.handler(buffer -> {
+          log.info("Received message: " + buffer.toString());
+        });
+      });
+  }*/
 }

@@ -12,17 +12,18 @@ public class Message {
   public static final String DELIM = "\r\n";
   public static final String NICKNAME_KEY = "nickname";
   public static final String CLIENT_ID_KEY = "id";
+  public static final String MESSAGE_CONTENT_KEY = "message";
   private static final String MESSAGE_ID_KEY = "id";
   private static final String RECEIVE_TIME_KEY = "time";
-  public static final String MESSAGE_CONTENT_KEY = "message";
+  private static final String PROTOCOL_KEY = "protocol";
 
   private final JsonObject json;
 
-  Message(Buffer buffer) {
+  public Message(Buffer buffer) {
     this.json = new JsonObject(buffer);
   }
 
-  Message(JsonObject json) {
+  public Message(JsonObject json) {
     this.json =json;
   }
 
@@ -30,9 +31,11 @@ public class Message {
     this.json = new JsonObject().put(key, value);
   }
 
-  void initServerSide(String id, String time) {
+  Message initServerSide(String id, String time, String protocol) {
     json.put(MESSAGE_ID_KEY, id);
     json.put(RECEIVE_TIME_KEY, time);
+    json.put(PROTOCOL_KEY, protocol);
+    return this;
   }
 
   boolean hasNickName() {
@@ -62,5 +65,13 @@ public class Message {
 
   public Buffer toBuffer() {
     return json.toBuffer().appendString(DELIM);
+  }
+
+  public Message copy() {
+    return new Message(this.json.copy());
+  }
+
+  public String protocol() {
+    return this.json.getString(PROTOCOL_KEY);
   }
 }
