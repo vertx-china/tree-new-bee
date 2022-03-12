@@ -22,6 +22,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   public static final String PROTOCOL = "TCP";
   DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
   SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>();
+  public static final String DELIM = "\r\n";
 
   @Override
   public void start(Promise<Void> startPromise) {
@@ -31,7 +32,8 @@ public class TcpServerVerticle extends AbstractVerticle {
       .connectHandler(socket -> {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected TcpServer!");
-        new Message(CLIENT_ID_KEY, id).writeTo(socket); //先将id发回
+        socket.write(new Message(CLIENT_ID_KEY, id)+DELIM); //先将id发回
+//        new Message(CLIENT_ID_KEY, id).writeTo(socket); //先将id发回
         socketHolder.addSocket(id, socket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
@@ -39,11 +41,11 @@ public class TcpServerVerticle extends AbstractVerticle {
         vertx.setTimer(3000, t -> vertx.eventBus()
           .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
             if (ar.succeeded()) {
-              ar.result().body().forEach(m -> socket.write(m.toBuffer()));
+              ar.result().body().forEach(m -> socket.write(m.toBuffer().appendString(DELIM)));
             }
           }));
 
-        socket.handler(RecordParser.newDelimited(Message.DELIM, buffer -> {
+        socket.handler(RecordParser.newDelimited(DELIM, buffer -> {
           log.debug("Received message raw content: " + buffer);
           try {
             String now = ZonedDateTime.now().format(dateFormatter);
@@ -54,7 +56,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               vertx.eventBus().publish(PUBLISH_MESSAGE, message);
             }
           } catch (Exception e) {
-            new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(socket);
+            socket.write(new Message(MESSAGE_CONTENT_KEY, e.getMessage()) + DELIM);
           }
         }).maxRecordSize(1024 * 64));
 

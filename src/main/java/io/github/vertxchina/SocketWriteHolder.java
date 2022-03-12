@@ -3,7 +3,9 @@ package io.github.vertxchina;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.net.NetSocket;
 import io.vertx.core.streams.WriteStream;
 
 import java.util.HashMap;
@@ -52,14 +54,25 @@ public class SocketWriteHolder<S extends WriteStream<Buffer>> {
   }
 
   void publishMessage(Message msg) {
-    idSocketBiMap.values().forEach(msg::writeTo);
+    idSocketBiMap.values().forEach(socket -> {
+      if(socket instanceof ServerWebSocket webSocket){
+        webSocket.writeTextMessage(msg.toString());
+      }else if(socket instanceof NetSocket netSocket){
+        netSocket.write(msg.toBuffer().appendString("\r\n"));
+      }
+    });
   }
 
   void sendToOtherUsers(Message msg) {
     var id = msg.messageId();
     for (var receiverSocket : idSocketBiMap.values()) {
-      if (receiverSocket != idSocketBiMap.get(id))
-        msg.writeTo(receiverSocket);
+      if (receiverSocket != idSocketBiMap.get(id)){
+        if(receiverSocket instanceof ServerWebSocket webSocket){
+          webSocket.writeTextMessage(msg.toString());
+        }else if(receiverSocket instanceof NetSocket netSocket){
+          netSocket.write(msg.toBuffer().appendString("\r\n"));
+        }
+      }
     }
   }
 }

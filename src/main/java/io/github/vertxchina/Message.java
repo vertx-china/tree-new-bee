@@ -9,7 +9,6 @@ import io.vertx.core.streams.WriteStream;
  * @author Leibniz on 2022/3/10 9:14 PM
  */
 public class Message {
-  public static final String DELIM = "\r\n";
   public static final String NICKNAME_KEY = "nickname";
   public static final String CLIENT_ID_KEY = "id";
   public static final String MESSAGE_CONTENT_KEY = "message";
@@ -62,12 +61,8 @@ public class Message {
     return json.getString(MESSAGE_ID_KEY);
   }
 
-  Future<Void> writeTo(WriteStream<Buffer> writeStream) {
-    return writeStream.write(json.toBuffer().appendString(DELIM));
-  }
-
   public Buffer toBuffer() {
-    return json.toBuffer().appendString(DELIM);
+    return json.toBuffer();
   }
 
   public String toString(){
