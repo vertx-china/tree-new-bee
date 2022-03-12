@@ -3,10 +3,10 @@ package io.github.vertxchina;
 import io.github.vertxchina.codec.TnbMessageCodec;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.WebSocket;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.NetSocket;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +18,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Leibniz on 2022/02/25 10:27 PM
+ * @author Leibniz on 2022/03/10 1:18 PM
  */
 @ExtendWith(VertxExtension.class)
-public class TcpServerVerticleTest {
-  static Logger log = LoggerFactory.getLogger(TcpServerVerticleTest.class);
+class WebsocketServerVerticleTest {
+  static Logger log = LoggerFactory.getLogger(WebsocketServerVerticleTest.class);
   
   @BeforeEach
   void init(Vertx vertx) {
@@ -34,8 +34,8 @@ public class TcpServerVerticleTest {
   void singleClientSendMessageTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))
       .onSuccess(client -> {
@@ -52,20 +52,17 @@ public class TcpServerVerticleTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   void multiClientSendMessageMutuallyTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 6666;
     int clientNum = 3;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, clientNum))
       .compose(cf -> CompositeFuture.all(cast(sendMessages(vertx, cf, 1))))
       .onSuccess(closed -> {
         for (Object o : closed.result().list()) {
-          TreeNewBeeClient client = (TreeNewBeeClient) o;
-          log.info("client " + client.id + " send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
-          assert client.receivedMsgList.size() == clientNum - 1; //N条其他Clients发出的消息，仅保留有消息（message字段）的消息，登陆后的响应和退出消息不保留，另外自身发送的消息不再返回
+          assert ((TnbWebSocketClient) o).receivedMsgList.size() == clientNum - 1; //N条其他Clients发出的消息，仅保留有消息（message字段）的消息，登陆后的响应和退出消息不保留，另外自身发送的消息不再返回
         }
         testCtx.completeNow();
       })
@@ -82,8 +79,8 @@ public class TcpServerVerticleTest {
   void singleClientSendMessageErrorTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
-    JsonObject config = new JsonObject().put("TcpServer.port", port);
-    vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port);
+    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
@@ -107,11 +104,11 @@ public class TcpServerVerticleTest {
     int port = 9527;
     int prevClientSendMsgNum = 10;
     int chatLogSize = 5;
-    JsonObject config = new JsonObject().put("TcpServer.port", port).put("MessageStore.chatLogSize", chatLogSize);
+    JsonObject config = new JsonObject().put("WebsocketServer.port", port).put("MessageStore.chatLogSize", chatLogSize);
     DeploymentOptions deploymentOptions = new DeploymentOptions().setConfig(config);
     vertx
       .deployVerticle(MessageStoreVerticle.class, deploymentOptions)
-      .compose(did -> vertx.deployVerticle(TcpServerVerticle.class, deploymentOptions))
+      .compose(did -> vertx.deployVerticle(WebsocketServerVerticle.class, deploymentOptions))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
       .compose(client -> {
@@ -138,9 +135,9 @@ public class TcpServerVerticleTest {
   private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
     List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
     for (Object o : ar.list()) {
-      if (o instanceof TreeNewBeeClient client) {
+      if (o instanceof TnbWebSocketClient client) {
         var socket = client.socket;
-        socket.write("fjdslkjlfa\r\n");
+        socket.write(Buffer.buffer("fjdslkjlfa\r\n"));
         Promise<List<JsonObject>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
@@ -153,16 +150,16 @@ public class TcpServerVerticleTest {
     return closeFutures;
   }
 
-  private List<Future<TreeNewBeeClient>> sendMessages(Vertx vertx, CompositeFuture ar, int msgNum) {
-    List<Future<TreeNewBeeClient>> closeFutures = new ArrayList<>();
+  private List<Future<TnbWebSocketClient>> sendMessages(Vertx vertx, CompositeFuture ar, int msgNum) {
+    List<Future<TnbWebSocketClient>> closeFutures = new ArrayList<>();
     for (Object o : ar.list()) {
-      if (o instanceof TreeNewBeeClient client) {
+      if (o instanceof TnbWebSocketClient client) {
         var clientId = client.id;
         var socket = client.socket;
         for (int i = 0; i < msgNum; i++) {
           client.sendMsg("Hello gays! I'm client " + clientId);
         }
-        Promise<TreeNewBeeClient> promise = Promise.promise();
+        Promise<TnbWebSocketClient> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
           log.info("Client " + socket + " closed");
@@ -180,9 +177,9 @@ public class TcpServerVerticleTest {
     for (int i = 0; i < num; i++) {
       var clientId = i;
       createClientFutures.add(
-        vertx.createNetClient()
-          .connect(port, "localhost")
-          .map(s -> new TreeNewBeeClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
+        vertx.createHttpClient()
+          .webSocket(port, "localhost", "/")
+          .map(s -> new TnbWebSocketClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
           .onSuccess(client -> {
             log.info("Client " + clientId + " Connected!");
             client.socket.handler(client::receiveMsg);
@@ -193,7 +190,8 @@ public class TcpServerVerticleTest {
     return CompositeFuture.all(createClientFutures);
   }
 
-  record TreeNewBeeClient(NetSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
+  record TnbWebSocketClient(WebSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
+
     void receiveMsg(Buffer buffer) {
       try {
         String[] jsonStrings = buffer.toString().split("\r\n");
@@ -213,7 +211,7 @@ public class TcpServerVerticleTest {
       socket.write(new JsonObject()
         .put("time", System.currentTimeMillis())
         .put("message", msg)
-        .put("fromClientId", id).toString() + "\r\n");
+        .put("fromClientId", id).toBuffer().appendString("\r\n"));
       sendMsgList.add(msg);
     }
   }
@@ -222,4 +220,21 @@ public class TcpServerVerticleTest {
   public static <T> T cast(Object obj) {
     return (T) obj;
   }
+
+  //本地测试模拟client
+/*  public static void main(String... args) {
+    Vertx vertx = Vertx.vertx();
+    vertx.createHttpClient()
+      .webSocket(32168, "localhost", "/")
+      .onSuccess(webSocket -> {
+        vertx.setPeriodic(5000L, tid -> {
+          JsonObject msg = new JsonObject().put("nickName", "Leibniz").put("message", "still alive");
+          webSocket.write(msg.toBuffer());
+          log.info("Send message: " + msg);
+        });
+        webSocket.handler(buffer -> {
+          log.info("Received message: " + buffer.toString());
+        });
+      });
+  }*/
 }
