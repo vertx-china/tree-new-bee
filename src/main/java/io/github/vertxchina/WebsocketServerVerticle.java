@@ -29,16 +29,6 @@ public class WebsocketServerVerticle extends AbstractVerticle {
   @Override
   public void start(Promise<Void> startPromise) {
 
-    //for testing
-    vertx.createHttpServer()
-        .webSocketHandler(websocket -> {
-          websocket.handler(buffer ->{
-            System.out.println(buffer.toString());
-            websocket.write(buffer);
-            websocket.close();
-          });
-        }).listen(32169);
-
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
     vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024*64))
