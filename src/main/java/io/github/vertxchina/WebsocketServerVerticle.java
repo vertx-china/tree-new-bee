@@ -6,7 +6,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import io.vertx.core.parsetools.RecordParser;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,7 +35,6 @@ public class WebsocketServerVerticle extends AbstractVerticle {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected Websocket Server!");
         webSocket.writeTextMessage(new Message(CLIENT_ID_KEY, id).toString());//先将id发回
-//        new Message(CLIENT_ID_KEY, id).writeTo(webSocket); //先将id发回
         socketHolder.addSocket(id, webSocket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
@@ -59,7 +57,6 @@ public class WebsocketServerVerticle extends AbstractVerticle {
             }
           } catch (Exception e) {
             webSocket.writeTextMessage(new Message(MESSAGE_CONTENT_KEY, e.getMessage()).toString());
-//            new Message(MESSAGE_CONTENT_KEY, e.getMessage()).writeTo(webSocket);
           }
         }).closeHandler(v -> socketHolder.removeSocket(webSocket));//todo 补充frame handler
       })

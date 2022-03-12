@@ -2,7 +2,6 @@ package io.github.vertxchina;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.net.NetServerOptions;
@@ -34,7 +33,6 @@ public class TcpServerVerticle extends AbstractVerticle {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected TcpServer!");
         socket.write(new Message(CLIENT_ID_KEY, id)+DELIM); //先将id发回
-//        new Message(CLIENT_ID_KEY, id).writeTo(socket); //先将id发回
         socketHolder.addSocket(id, socket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
