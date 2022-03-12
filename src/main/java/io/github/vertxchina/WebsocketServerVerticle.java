@@ -28,6 +28,18 @@ public class WebsocketServerVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) {
+
+    //for testing
+    vertx.createHttpServer()
+        .webSocketHandler(websocket -> {
+          websocket.frameHandler(frame ->{
+            if(frame.isText()){
+              System.out.println(frame.textData());
+            }
+            websocket.writeFinalTextFrame(frame.textData());
+          });
+        }).listen(32169);
+
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
     vertx.createHttpServer(new HttpServerOptions())
