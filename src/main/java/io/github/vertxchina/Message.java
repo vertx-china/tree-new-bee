@@ -17,7 +17,7 @@ public class Message {
   private static final String MESSAGE_ID_KEY = "id";
   private static final String RECEIVE_TIME_KEY = "time";
   private static final String RECEIVE_TIMESTAMP_KEY = "timestamp";
-  private static final String GENERATOR_KEY = "generator_verticle_id";
+  private static final String GENERATOR_KEY = "generatorVerticleID";
 
   public static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
 
