@@ -2,11 +2,11 @@ package io.github.vertxchina;
 
 import io.github.vertxchina.codec.TnbMessageCodec;
 import io.vertx.core.*;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
+import io.vertx.core.parsetools.RecordParser;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static io.github.vertxchina.TcpServerVerticle.DELIM;
 
 /**
  * @author Leibniz on 2022/02/25 10:27 PM
@@ -52,7 +54,6 @@ public class TcpServerVerticleTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   void multiClientSendMessageMutuallyTest(Vertx vertx, VertxTestContext testCtx) throws Throwable {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 6666;
@@ -88,7 +89,7 @@ public class TcpServerVerticleTest {
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
         assert msgList.size() == 1; //发送错误消息应返回解析错误消息
-        var stacktrace = msgList.get(0).getString("message");
+        var stacktrace = msgList.get(0);
         log.info(stacktrace);
         testCtx.completeNow();
       })
@@ -135,13 +136,13 @@ public class TcpServerVerticleTest {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() End");
   }
 
-  private List<Future<List<JsonObject>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
-    List<Future<List<JsonObject>>> closeFutures = new ArrayList<>();
+  private List<Future<List<String>>> sendErrorMessages(Vertx vertx, CompositeFuture ar) {
+    List<Future<List<String>>> closeFutures = new ArrayList<>();
     for (Object o : ar.list()) {
       if (o instanceof TreeNewBeeClient client) {
         var socket = client.socket;
         socket.write("fjdslkjlfa\r\n");
-        Promise<List<JsonObject>> promise = Promise.promise();
+        Promise<List<String>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {
           log.info("Client " + socket + " closed");
@@ -182,10 +183,10 @@ public class TcpServerVerticleTest {
       createClientFutures.add(
         vertx.createNetClient()
           .connect(port, "localhost")
-          .map(s -> new TreeNewBeeClient(s, clientId, new ArrayList<>(), new ArrayList<>()))
+          .map(s -> new TreeNewBeeClient(s, clientId))
           .onSuccess(client -> {
             log.info("Client " + clientId + " Connected!");
-            client.socket.handler(client::receiveMsg);
+            client.socket.handler(b -> client.parser.handle(b));
           })
           .onFailure(e -> log.info("Failed to connect: " + e.getMessage()))
       );
@@ -193,21 +194,30 @@ public class TcpServerVerticleTest {
     return CompositeFuture.all(createClientFutures);
   }
 
-  record TreeNewBeeClient(NetSocket socket, int id, List<JsonObject> receivedMsgList, List<String> sendMsgList) {
-    void receiveMsg(Buffer buffer) {
-      try {
-        String[] jsonStrings = buffer.toString().split("\r\n");
-        for (String jsonString : jsonStrings) {
-          JsonObject msg = new JsonObject(jsonString.trim());
-          log.info("Client " + id + " Received message: " + msg);
-          if (msg.containsKey("message")) {
-            receivedMsgList.add(msg);
+  static class TreeNewBeeClient {
+    List<String> receivedMsgList = new ArrayList<>();
+    List<String> sendMsgList = new ArrayList<>();
+    final NetSocket socket;
+    final int id;
+    final RecordParser parser;
+
+    public TreeNewBeeClient(NetSocket socket, int id) {
+      this.socket = socket;
+      this.id = id;
+      this.parser = RecordParser.newDelimited(DELIM, h -> {
+          try {
+            JsonObject msg = new JsonObject(h);
+            log.info("Client " + id + " Received message: " + msg);
+            if (msg.containsKey("message")) {
+              receivedMsgList.add(msg.getString("message"));
+            }
+          } catch (Exception e) {
+            log.error("Client " + id + " parse message err: " + e.getMessage() + "original message:" + h.toString());
           }
-        }
-      } catch (Exception e) {
-        log.info("Client " + id + " parse message err: " + e.getMessage() + "original message:" + buffer.toString());
-      }
+        })
+        .maxRecordSize(1024 * 64);
     }
+
 
     void sendMsg(String msg) {
       socket.write(new JsonObject()
