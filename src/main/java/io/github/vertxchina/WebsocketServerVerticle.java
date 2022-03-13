@@ -21,58 +21,59 @@ import static io.github.vertxchina.Message.MESSAGE_CONTENT_KEY;
 public class WebsocketServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(WebsocketServerVerticle.class);
   private final String VERTICLE_ID = UUID.randomUUID().toString();
-  SocketWriteHolder<ServerWebSocket> socketHolder = new SocketWriteHolder<>((socket, message)->socket.writeTextMessage(message.toString()));
+  SocketWriteHolder<ServerWebSocket> socketHolder =
+      new SocketWriteHolder<>((socket, message) -> socket.writeTextMessage(message.toString()));
 
   @Override
   public void start(Promise<Void> startPromise) {
 
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
-    vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024*64))
-      .webSocketHandler(webSocket -> {
-        var id = SocketWriteHolder.generateClientId();
-        log.info(id + " Connected Websocket Server!");
-        webSocket.writeTextMessage(new Message(CLIENT_ID_KEY, id).toString());//先将id发回
-        socketHolder.addSocket(id, webSocket);
+    vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024 * 64))
+        .webSocketHandler(webSocket -> {
+          var id = SocketWriteHolder.generateClientId();
+          log.info(id + " Connected Websocket Server!");
+          webSocket.writeTextMessage(new Message(CLIENT_ID_KEY, id).toString());//先将id发回
+          socketHolder.addSocket(id, webSocket);
 
-        //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-        vertx.setTimer(3000, t -> vertx.eventBus()
-          .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
-            if (ar.succeeded()) {
-              ar.result().body().forEach(m -> webSocket.writeTextMessage(m.toString()));
-            }
-          }));
+          //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
+          vertx.setTimer(3000, t -> vertx.eventBus()
+              .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
+                if (ar.succeeded()) {
+                  ar.result().body().forEach(m -> webSocket.writeTextMessage(m.toString()));
+                }
+              }));
 
-        webSocket.handler(buffer -> {
-          log.debug("Received message raw content: " + buffer);
-          try {
-            var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
-            socketHolder.receiveMessage(webSocket, message);
-            if (message.hasMessage()) {
-              socketHolder.sendToOtherUsers(message);
-              vertx.eventBus().publish(PUBLISH_MESSAGE, message);
+          webSocket.handler(buffer -> {
+            log.debug("Received message raw content: " + buffer);
+            try {
+              var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
+              socketHolder.receiveMessage(webSocket, message);
+              if (message.hasMessage()) {
+                socketHolder.sendToOtherUsers(message);
+                vertx.eventBus().publish(PUBLISH_MESSAGE, message);
+              }
+            } catch (Exception e) {
+              webSocket.writeTextMessage(new Message(MESSAGE_CONTENT_KEY, e.getMessage()).toString());
             }
-          } catch (Exception e) {
-            webSocket.writeTextMessage(new Message(MESSAGE_CONTENT_KEY, e.getMessage()).toString());
-          }
-        }).closeHandler(v -> socketHolder.removeSocket(webSocket));//todo 补充frame handler
-      })
-      .listen(port)
-      .onSuccess(s -> {
-        log.info("WebsocketServer listen to port: " + port);
-        startPromise.complete();
-      })
-      .onFailure(e -> {
-        log.error("WebsocketServer start failed: " + e.getMessage(), e);
-        startPromise.fail(e);
-      });
+          }).closeHandler(v -> socketHolder.removeSocket(webSocket));//todo 补充frame handler
+        })
+        .listen(port)
+        .onSuccess(s -> {
+          log.info("WebsocketServer listen to port: " + port);
+          startPromise.complete();
+        })
+        .onFailure(e -> {
+          log.error("WebsocketServer start failed: " + e.getMessage(), e);
+          startPromise.fail(e);
+        });
     vertx.eventBus()
-      .<Message>consumer(PUBLISH_MESSAGE)
-      .handler(message -> {
-        Message tnbMsg = message.body();
-        if (!tnbMsg.generator().equals(VERTICLE_ID)) {
-          socketHolder.sendToOtherUsers(tnbMsg);
-        }
-      });
+        .<Message>consumer(PUBLISH_MESSAGE)
+        .handler(message -> {
+          Message tnbMsg = message.body();
+          if (!tnbMsg.generator().equals(VERTICLE_ID)) {
+            socketHolder.sendToOtherUsers(tnbMsg);
+          }
+        });
   }
 }

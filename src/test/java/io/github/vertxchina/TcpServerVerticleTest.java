@@ -211,9 +211,7 @@ public class TcpServerVerticleTest {
 
     void sendMsg(String msg) {
       socket.write(new JsonObject()
-        .put("time", System.currentTimeMillis())
-        .put("message", msg)
-        .put("fromClientId", id).toString() + "\r\n");
+        .put("message", msg).toString() + "\r\n");
       sendMsgList.add(msg);
     }
   }

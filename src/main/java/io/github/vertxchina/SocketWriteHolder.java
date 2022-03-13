@@ -44,11 +44,15 @@ public class SocketWriteHolder<S extends WriteStream<Buffer>> {
   void receiveMessage(S socket, Message message) {
     if (message.hasNickName()) {
       netSocketNicknameMap.put(socket, message.nickName());
-      updateUsersList();
-    }
-
-    if (netSocketNicknameMap.containsKey(socket)) {
+      if(!message.nickName().equals(netSocketNicknameMap.get(socket)))//只有昵称与存储昵称不同时候，才需要更新
+        updateUsersList();
+    }else if (netSocketNicknameMap.containsKey(socket)) {//已有昵称无需set，没有则需要set一下昵称
       message.setNickName(netSocketNicknameMap.get(socket));
+    }else {
+      //shouldn't be here
+      var id = generateClientId();
+      netSocketNicknameMap.put(socket, id);
+      message.setNickName(id);
     }
   }
 

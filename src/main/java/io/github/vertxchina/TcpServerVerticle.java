@@ -20,7 +20,7 @@ public class TcpServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(TcpServerVerticle.class);
   private final String VERTICLE_ID = UUID.randomUUID().toString();
   public static final String DELIM = "\r\n";
-  SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>((socket, message) -> socket.write(message.toBuffer().appendString(DELIM)));
+  SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>(this::writeSocket);
 
   @Override
   public void start(Promise<Void> startPromise) {
@@ -30,7 +30,7 @@ public class TcpServerVerticle extends AbstractVerticle {
       .connectHandler(socket -> {
         var id = SocketWriteHolder.generateClientId();
         log.info(id + " Connected TcpServer!");
-        socket.write(new Message(CLIENT_ID_KEY, id)+DELIM); //先将id发回
+        writeSocket(socket, new Message(CLIENT_ID_KEY, id));//先将id发回
         socketHolder.addSocket(id, socket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
@@ -38,7 +38,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         vertx.setTimer(3000, t -> vertx.eventBus()
           .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
             if (ar.succeeded()) {
-              ar.result().body().forEach(m -> socket.write(m.toBuffer().appendString(DELIM)));
+              ar.result().body().forEach(msg -> writeSocket(socket, msg));
             }
           }));
 
@@ -52,7 +52,7 @@ public class TcpServerVerticle extends AbstractVerticle {
               vertx.eventBus().publish(PUBLISH_MESSAGE, message);
             }
           } catch (Exception e) {
-            socket.write(new Message(MESSAGE_CONTENT_KEY, e.getMessage()) + DELIM);
+            writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, e.getMessage()));
           }
         }).maxRecordSize(1024 * 64));
 
@@ -75,5 +75,9 @@ public class TcpServerVerticle extends AbstractVerticle {
           socketHolder.sendToOtherUsers(tnbMsg);
         }
       });
+  }
+
+  private void writeSocket(NetSocket socket, Message message) {
+    socket.write(message.toBuffer().appendString(DELIM));
   }
 }
