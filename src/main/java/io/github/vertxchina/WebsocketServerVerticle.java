@@ -60,6 +60,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
         })
         .listen(port)
         .onSuccess(s -> {
+          log.info("WebsocketServerVerticle deployed with verticle ID: " + VERTICLE_ID);
           log.info("WebsocketServer listen to port: " + port);
           startPromise.complete();
         })

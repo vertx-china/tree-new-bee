@@ -60,6 +60,7 @@ public class TcpServerVerticle extends AbstractVerticle {
       })
       .listen(port)
       .onSuccess(s -> {
+        log.info("TcpServerVerticle deployed with verticle ID: " + VERTICLE_ID);
         log.info("TcpServer listen to port: " + port);
         startPromise.complete();
       })
