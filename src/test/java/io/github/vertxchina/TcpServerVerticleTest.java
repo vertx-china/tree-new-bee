@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.vertxchina.TcpServerVerticle.DELIM;
 
@@ -118,7 +119,7 @@ public class TcpServerVerticleTest {
       .compose(client -> {
         log.info("First client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
         assert client.sendMsgList.size() == prevClientSendMsgNum;
-        assert client.receivedMsgList.size() <= chatLogSize;
+        assert client.receivedMsgList.size() == chatLogSize;
         return createClients(vertx, port, 1);
       })
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))
@@ -175,19 +176,17 @@ public class TcpServerVerticleTest {
     return closeFutures;
   }
 
+  private final AtomicInteger clientIdCnt = new AtomicInteger(0);
+
   @SuppressWarnings("rawtypes")
   private CompositeFuture createClients(Vertx vertx, int port, int num) {
     List<Future> createClientFutures = new ArrayList<>();
     for (int i = 0; i < num; i++) {
-      var clientId = i;
+      var clientId = clientIdCnt.addAndGet(1);
       createClientFutures.add(
         vertx.createNetClient()
           .connect(port, "localhost")
           .map(s -> new TreeNewBeeClient(s, clientId))
-          .onSuccess(client -> {
-            log.info("Client " + clientId + " Connected!");
-            client.socket.handler(b -> client.parser.handle(b));
-          })
           .onFailure(e -> log.info("Failed to connect: " + e.getMessage()))
       );
     }
@@ -199,12 +198,11 @@ public class TcpServerVerticleTest {
     List<String> sendMsgList = new ArrayList<>();
     final NetSocket socket;
     final int id;
-    final RecordParser parser;
 
     public TreeNewBeeClient(NetSocket socket, int id) {
       this.socket = socket;
       this.id = id;
-      this.parser = RecordParser.newDelimited(DELIM, h -> {
+      this.socket.handler(RecordParser.newDelimited(DELIM, h -> {
           try {
             JsonObject msg = new JsonObject(h);
             log.info("Client " + id + " Received message: " + msg);
@@ -215,7 +213,8 @@ public class TcpServerVerticleTest {
             log.error("Client " + id + " parse message err: " + e.getMessage() + "original message:" + h.toString());
           }
         })
-        .maxRecordSize(1024 * 64);
+        .maxRecordSize(1024 * 64));
+      log.info("Client " + id + " Connected!");
     }
 
 
