@@ -7,9 +7,8 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 import static io.github.vertxchina.EventbusAddress.PUBLISH_MESSAGE;
 import static io.github.vertxchina.EventbusAddress.READ_STORED_MESSAGES;
@@ -21,8 +20,7 @@ import static io.github.vertxchina.Message.MESSAGE_CONTENT_KEY;
  */
 public class WebsocketServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(WebsocketServerVerticle.class);
-  public static final String PROTOCOL = "WEBSOCKET";
-  DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
+  private final String VERTICLE_ID = UUID.randomUUID().toString();
   SocketWriteHolder<ServerWebSocket> socketHolder = new SocketWriteHolder<>((socket, message)->socket.writeTextMessage(message.toString()));
 
   @Override
@@ -48,8 +46,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
         webSocket.handler(buffer -> {
           log.debug("Received message raw content: " + buffer);
           try {
-            String now = ZonedDateTime.now().format(dateFormatter);
-            var message = new Message(buffer).initServerSide(id, now, PROTOCOL);
+            var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
             socketHolder.receiveMessage(webSocket, message);
             if (message.hasMessage()) {
               socketHolder.sendToOtherUsers(message);
@@ -73,7 +70,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
       .<Message>consumer(PUBLISH_MESSAGE)
       .handler(message -> {
         Message tnbMsg = message.body();
-        if (!tnbMsg.protocol().equals(PROTOCOL)) {
+        if (!tnbMsg.generator().equals(VERTICLE_ID)) {
           socketHolder.sendToOtherUsers(tnbMsg);
         }
       });

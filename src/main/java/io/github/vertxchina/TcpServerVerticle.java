@@ -8,9 +8,8 @@ import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.parsetools.RecordParser;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 import static io.github.vertxchina.EventbusAddress.PUBLISH_MESSAGE;
 import static io.github.vertxchina.EventbusAddress.READ_STORED_MESSAGES;
@@ -19,8 +18,7 @@ import static io.github.vertxchina.Message.MESSAGE_CONTENT_KEY;
 
 public class TcpServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(TcpServerVerticle.class);
-  public static final String PROTOCOL = "TCP";
-  DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
+  private final String VERTICLE_ID = UUID.randomUUID().toString();
   public static final String DELIM = "\r\n";
   SocketWriteHolder<NetSocket> socketHolder = new SocketWriteHolder<>((socket, message) -> socket.write(message.toBuffer().appendString(DELIM)));
 
@@ -47,8 +45,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         socket.handler(RecordParser.newDelimited(DELIM, buffer -> {
           log.debug("Received message raw content: " + buffer);
           try {
-            String now = ZonedDateTime.now().format(dateFormatter);
-            var message = new Message(buffer).initServerSide(id, now, PROTOCOL);
+            var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
             socketHolder.receiveMessage(socket, message);
             if (message.hasMessage()) {
               socketHolder.sendToOtherUsers(message);
@@ -74,7 +71,7 @@ public class TcpServerVerticle extends AbstractVerticle {
       .<Message>consumer(PUBLISH_MESSAGE)
       .handler(message -> {
         Message tnbMsg = message.body();
-        if (!tnbMsg.protocol().equals(PROTOCOL)) {
+        if (!tnbMsg.generator().equals(VERTICLE_ID)) {
           socketHolder.sendToOtherUsers(tnbMsg);
         }
       });

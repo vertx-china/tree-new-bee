@@ -1,9 +1,10 @@
 package io.github.vertxchina;
 
-import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.streams.WriteStream;
+
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * @author Leibniz on 2022/3/10 9:14 PM
@@ -16,7 +17,9 @@ public class Message {
   private static final String MESSAGE_ID_KEY = "id";
   private static final String RECEIVE_TIME_KEY = "time";
   private static final String RECEIVE_TIMESTAMP_KEY = "timestamp";
-  private static final String PROTOCOL_KEY = "protocol";
+  private static final String GENERATOR_KEY = "generator_verticle_id";
+
+  public static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z");
 
   private final JsonObject json;
 
@@ -32,10 +35,10 @@ public class Message {
     this.json = new JsonObject().put(key, value);
   }
 
-  Message initServerSide(String id, String time, String protocol) {
+  Message initServerSide(String id, String generatorVerticle) {
     json.put(MESSAGE_ID_KEY, id);
-    json.put(RECEIVE_TIME_KEY, time);
-    json.put(PROTOCOL_KEY, protocol);
+    json.put(RECEIVE_TIME_KEY, ZonedDateTime.now().format(dateFormatter));
+    json.put(GENERATOR_KEY, generatorVerticle);
     json.put(RECEIVE_TIMESTAMP_KEY, System.currentTimeMillis());
     return this;
   }
@@ -73,7 +76,7 @@ public class Message {
     return new Message(this.json.copy());
   }
 
-  public String protocol() {
-    return this.json.getString(PROTOCOL_KEY);
+  public String generator() {
+    return this.json.getString(GENERATOR_KEY);
   }
 }
