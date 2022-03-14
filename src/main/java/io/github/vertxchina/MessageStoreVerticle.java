@@ -20,7 +20,6 @@ public class MessageStoreVerticle extends AbstractVerticle {
     private final Deque<Message> fifo = new LinkedList<>();
     private int bufferSize;
 
-
     @Override
     public void start() {
         this.bufferSize = config().getInteger("MessageStore.chatLogSize", 30);

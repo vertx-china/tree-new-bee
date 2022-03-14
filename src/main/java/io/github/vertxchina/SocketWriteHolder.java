@@ -43,23 +43,22 @@ public class SocketWriteHolder<S extends WriteStream<Buffer>> {
 
   void receiveMessage(S socket, Message message) {
     if (message.hasNickName()) {
-      netSocketNicknameMap.put(socket, message.nickName());
-      if(!message.nickName().equals(netSocketNicknameMap.get(socket)))//只有昵称与存储昵称不同时候，才需要更新
+      if(!netSocketNicknameMap.containsKey(socket) ||
+        !netSocketNicknameMap.get(socket).equals(message.nickName())){//只有昵称与存储昵称不同时候，才需要更新
+        netSocketNicknameMap.put(socket, message.nickName());
         updateUsersList();
-    }else if (netSocketNicknameMap.containsKey(socket)) {//已有昵称无需set，没有则需要set一下昵称
+      }
+    }
+
+    if (netSocketNicknameMap.containsKey(socket)) {//添加昵称
       message.setNickName(netSocketNicknameMap.get(socket));
-    }else {
-      //shouldn't be here
-      var id = generateClientId();
-      netSocketNicknameMap.put(socket, id);
-      message.setNickName(id);
     }
   }
 
   void updateUsersList() {
     var jsonArrays = new JsonArray();
     netSocketNicknameMap.values().forEach(jsonArrays::add);
-    publishMessage(new Message(NICKNAME_KEY, jsonArrays));
+    publishMessage(new Message(NICKNAME_KEY+"s", jsonArrays));//复数，nickname表示当前用户昵称，复数表示用户列表，后续可能去掉这个功能，因为支持的客户端太少
   }
 
   void publishMessage(Message msg) {
