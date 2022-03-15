@@ -33,7 +33,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         writeSocket(socket, new Message(CLIENT_ID_KEY, id));//先将id发回
         socketHolder.addSocket(id, socket);
 
-        //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
+        //TODO 将来有了账户之后，改成登陆之后，再将历史记录发回
         vertx.eventBus().<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
           if (ar.succeeded()) {
             vertx.setTimer(3000, t -> {
