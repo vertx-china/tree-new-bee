@@ -34,13 +34,13 @@ public class TcpServerVerticle extends AbstractVerticle {
         socketHolder.addSocket(id, socket);
 
         //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-        //FIXME 如果client登录后马上发消息，这里会返回此间client发送的消息
-        vertx.setTimer(3000, t -> vertx.eventBus()
-          .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
-            if (ar.succeeded()) {
+        vertx.eventBus().<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
+          if (ar.succeeded()) {
+            vertx.setTimer(3000, t -> {
               ar.result().body().forEach(msg -> writeSocket(socket, msg));
-            }
-          }));
+            });
+          }
+        });
 
         socket.handler(RecordParser.newDelimited(DELIM, buffer -> {
           log.debug("Received message raw content: " + buffer);

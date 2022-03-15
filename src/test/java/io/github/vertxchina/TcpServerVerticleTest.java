@@ -119,7 +119,7 @@ public class TcpServerVerticleTest {
       .compose(client -> {
         log.info("First client send " + client.sendMsgList.size() + " message(s), received " + client.receivedMsgList.size() + " messages");
         assert client.sendMsgList.size() == prevClientSendMsgNum;
-        assert client.receivedMsgList.size() == chatLogSize;
+        assert client.receivedMsgList.size() <= chatLogSize;
         return createClients(vertx, port, 1);
       })
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))

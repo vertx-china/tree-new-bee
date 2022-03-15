@@ -37,12 +37,13 @@ public class WebsocketServerVerticle extends AbstractVerticle {
           socketHolder.addSocket(id, webSocket);
 
           //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-          vertx.setTimer(3000, t -> vertx.eventBus()
-              .<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
-                if (ar.succeeded()) {
-                  ar.result().body().forEach(m -> webSocket.writeTextMessage(m.toString()));
-                }
-              }));
+          vertx.eventBus().<List<Message>>request(READ_STORED_MESSAGES, null, ar -> {
+            if (ar.succeeded()) {
+              vertx.setTimer(3000, t -> {
+                ar.result().body().forEach(msg -> webSocket.writeTextMessage(msg.toString()));
+              });
+            }
+          });
 
           webSocket.handler(buffer -> {
             log.debug("Received message raw content: " + buffer);
