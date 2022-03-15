@@ -73,7 +73,7 @@ public class TcpServerVerticle extends AbstractVerticle {
       .handler(message -> {
         Message tnbMsg = message.body();
         if (!tnbMsg.generator().equals(VERTICLE_ID)) {
-          socketHolder.sendToOtherUsers(tnbMsg);
+          socketHolder.publishMessage(tnbMsg);
         }
       });
   }
