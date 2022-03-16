@@ -1,11 +1,10 @@
-package io.github.vertxchina;
+package io.github.vertxchina.webverticle;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import io.github.vertxchina.Message;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.net.NetSocket;
 import io.vertx.core.streams.WriteStream;
 
 import java.util.HashMap;

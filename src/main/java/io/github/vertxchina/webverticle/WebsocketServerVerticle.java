@@ -1,5 +1,6 @@
-package io.github.vertxchina;
+package io.github.vertxchina.webverticle;
 
+import io.github.vertxchina.Message;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerOptions;

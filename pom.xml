@@ -15,7 +15,7 @@
         <kotlin.version>1.5.31</kotlin.version>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <kotlin.compiler.jvmTarget>17</kotlin.compiler.jvmTarget>
-        <vertx.version>4.2.5</vertx.version>
+        <vertx.version>4.2.6</vertx.version>
         <vertx.verticle>io.github.vertxchina.MainLauncher</vertx.verticle>
     </properties>
 
@@ -34,6 +34,11 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-lang-kotlin</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
             <version>${vertx.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->

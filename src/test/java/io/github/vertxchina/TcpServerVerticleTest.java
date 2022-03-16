@@ -1,6 +1,7 @@
 package io.github.vertxchina;
 
 import io.github.vertxchina.codec.TnbMessageCodec;
+import io.github.vertxchina.webverticle.TcpServerVerticle;
 import io.vertx.core.*;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.github.vertxchina.TcpServerVerticle.DELIM;
+import static io.github.vertxchina.webverticle.TcpServerVerticle.DELIM;
 
 /**
  * @author Leibniz on 2022/02/25 10:27 PM

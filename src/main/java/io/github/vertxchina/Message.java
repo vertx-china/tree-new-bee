@@ -31,11 +31,11 @@ public class Message {
     this.json =json;
   }
 
-  Message(String key, Object value) {
+  public Message(String key, Object value) {
     this.json = new JsonObject().put(key, value);
   }
 
-  Message initServerSide(String id, String generatorVerticle) {
+  public Message initServerSide(String id, String generatorVerticle) {
     json.put(MESSAGE_ID_KEY, id);
     json.put(RECEIVE_TIME_KEY, ZonedDateTime.now().format(dateFormatter));
     json.put(GENERATOR_KEY, generatorVerticle);
@@ -43,24 +43,24 @@ public class Message {
     return this;
   }
 
-  boolean hasNickName() {
+  public boolean hasNickName() {
     return null != json.getValue(NICKNAME_KEY)
       && !json.getValue(NICKNAME_KEY).toString().isEmpty();
   }
 
-  String nickName() {
+  public String nickName() {
     return json.getValue(NICKNAME_KEY).toString().trim();
   }
 
-  void setNickName(String nickname) {
+  public void setNickName(String nickname) {
     json.put(NICKNAME_KEY, nickname);
   }
 
-  boolean hasMessage(){
+  public boolean hasMessage(){
     return json.containsKey(MESSAGE_CONTENT_KEY);
   }
 
-  String messageId(){
+  public String messageId(){
     return json.getString(MESSAGE_ID_KEY);
   }
 

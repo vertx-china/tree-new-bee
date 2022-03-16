@@ -1,5 +1,6 @@
-package io.github.vertxchina;
+package io.github.vertxchina.webverticle;
 
+import io.github.vertxchina.Message;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.streams.WriteStream;
 
