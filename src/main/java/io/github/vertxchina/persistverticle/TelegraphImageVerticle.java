@@ -21,7 +21,7 @@ public class TelegraphImageVerticle extends AbstractVerticle {
 
   @Override
   public void start() throws Exception {
-    WebClient webClient = WebClient.create(vertx, new WebClientOptions().setProxyOptions(new ProxyOptions().setHost("127.0.0.1").setPort(4780)));
+    WebClient webClient = WebClient.create(vertx, new WebClientOptions());//.setProxyOptions(new ProxyOptions().setHost("127.0.0.1").setPort(4780))
     byte[] base64 = Base64.getMimeDecoder().decode(ERROR_IMAGE);
     MultipartForm file = MultipartForm.create().binaryFileUpload("file", "tmpPic", Buffer.buffer().appendBytes(base64), "application/octet-stream");
     webClient.post(443, SERVER, UPLOAD_URI)
