@@ -12,11 +12,10 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <kotlin.version>1.5.31</kotlin.version>
-        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
+        <kotlin.version>1.6.10</kotlin.version>
         <kotlin.compiler.jvmTarget>17</kotlin.compiler.jvmTarget>
         <vertx.version>4.2.6</vertx.version>
-        <vertx.verticle>io.github.vertxchina.MainLauncher</vertx.verticle>
+        <vertx.verticle>io.github.vertxchina.MainVerticle</vertx.verticle>
     </properties>
 
     <dependencies>
@@ -41,11 +40,21 @@
             <artifactId>vertx-web-client</artifactId>
             <version>${vertx.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-lang-kotlin</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-lang-kotlin-coroutines</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>31.0.1-jre</version>
+            <version>31.1-jre</version>
         </dependency>
     </dependencies>
 
@@ -72,7 +81,7 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <version>${kotlin.version}</version>
+                <version>1.6.10</version>
                 <configuration>
                     <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
                 </configuration>

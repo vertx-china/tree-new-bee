@@ -9,6 +9,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
+/**
+ * Deprecated
+ * Use kotlin:io.github.vertxchina.MainVerticle instead
+ */
+
+@Deprecated
 public class MainLauncher extends AbstractVerticle {
   @Override
   public void start(Promise<Void> startPromise) {
