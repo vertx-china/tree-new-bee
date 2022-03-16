@@ -1,7 +1,8 @@
-package io.github.vertxchina;
+package io.github.vertxchina.webverticle;
 
-import io.github.vertxchina.codec.TnbMessageCodec;
-import io.github.vertxchina.webverticle.WebsocketServerVerticle;
+import io.github.vertxchina.eventbus.Message;
+import io.github.vertxchina.eventbus.TnbMessageCodec;
+import io.github.vertxchina.persistverticle.MessageStoreVerticle;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.WebSocket;

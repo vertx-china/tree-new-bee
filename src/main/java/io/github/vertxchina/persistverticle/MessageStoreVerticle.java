@@ -1,6 +1,7 @@
-package io.github.vertxchina;
+package io.github.vertxchina.persistverticle;
 
-import io.github.vertxchina.codec.TnbMessageListCodec;
+import io.github.vertxchina.eventbus.Message;
+import io.github.vertxchina.eventbus.TnbMessageListCodec;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.DeliveryOptions;
 
@@ -9,8 +10,8 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import static io.github.vertxchina.EventbusAddress.PUBLISH_MESSAGE;
-import static io.github.vertxchina.EventbusAddress.READ_STORED_MESSAGES;
+import static io.github.vertxchina.eventbus.EventbusAddress.PUBLISH_MESSAGE;
+import static io.github.vertxchina.eventbus.EventbusAddress.READ_STORED_MESSAGES;
 
 /**
  * @author Leibniz on 2022/3/3 8:18 AM

@@ -1,4 +1,4 @@
-package io.github.vertxchina;
+package io.github.vertxchina.eventbus;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;

@@ -1,4 +1,4 @@
-package io.github.vertxchina;
+package io.github.vertxchina.eventbus;
 
 /**
  * @author Leibniz on 2022/03/12 2:58 PM

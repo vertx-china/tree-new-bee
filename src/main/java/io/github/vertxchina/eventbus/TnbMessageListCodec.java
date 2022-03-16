@@ -1,6 +1,5 @@
-package io.github.vertxchina.codec;
+package io.github.vertxchina.eventbus;
 
-import io.github.vertxchina.Message;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;
 

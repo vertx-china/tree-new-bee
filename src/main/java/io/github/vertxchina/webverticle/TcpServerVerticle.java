@@ -1,6 +1,6 @@
 package io.github.vertxchina.webverticle;
 
-import io.github.vertxchina.Message;
+import io.github.vertxchina.eventbus.Message;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
@@ -12,10 +12,10 @@ import io.vertx.core.parsetools.RecordParser;
 import java.util.List;
 import java.util.UUID;
 
-import static io.github.vertxchina.EventbusAddress.PUBLISH_MESSAGE;
-import static io.github.vertxchina.EventbusAddress.READ_STORED_MESSAGES;
-import static io.github.vertxchina.Message.CLIENT_ID_KEY;
-import static io.github.vertxchina.Message.MESSAGE_CONTENT_KEY;
+import static io.github.vertxchina.eventbus.EventbusAddress.PUBLISH_MESSAGE;
+import static io.github.vertxchina.eventbus.EventbusAddress.READ_STORED_MESSAGES;
+import static io.github.vertxchina.eventbus.Message.CLIENT_ID_KEY;
+import static io.github.vertxchina.eventbus.Message.MESSAGE_CONTENT_KEY;
 
 public class TcpServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(TcpServerVerticle.class);

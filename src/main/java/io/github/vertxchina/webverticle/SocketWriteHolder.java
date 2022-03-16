@@ -2,7 +2,7 @@ package io.github.vertxchina.webverticle;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import io.github.vertxchina.Message;
+import io.github.vertxchina.eventbus.Message;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.streams.WriteStream;
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.github.vertxchina.Message.NICKNAME_KEY;
+import static io.github.vertxchina.eventbus.Message.NICKNAME_KEY;
 
 /**
  * @author Leibniz on 2022/03/10 1:52 PM
