@@ -3,8 +3,6 @@ package io.github.vertxchina.webverticle
 import io.github.vertxchina.eventbus.EventbusAddress
 import io.github.vertxchina.eventbus.Message
 import io.github.vertxchina.persistverticle.TelegraphImgVerticle
-import io.vertx.core.AsyncResult
-import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerOptions
 import io.vertx.core.http.ServerWebSocket
 import io.vertx.core.impl.logging.LoggerFactory
@@ -26,27 +24,35 @@ class WebSocketVerticle : CoroutineVerticle() {
   override suspend fun start() {
     try {
       val port: Int = config.getInteger("WebsocketServer.port", 32168)
-      vertx.createHttpServer(HttpServerOptions().setMaxWebSocketFrameSize(1024 * 1024 * 4))
-        .webSocketHandler { webSocket: ServerWebSocket ->
-          val id = SocketWriteHolder.generateClientId()
-          log.info("$id Connected Websocket Server!")
-          webSocket.writeTextMessage(Message(Message.CLIENT_ID_KEY, id).toString()) //先将id发回
-          socketHolder.addSocket(id, webSocket)
+      vertx.createHttpServer(HttpServerOptions().setMaxWebSocketFrameSize(1024 * 64)
+        .setMaxWebSocketMessageSize(1024 * 1024 * 64)).webSocketHandler { webSocket: ServerWebSocket ->
+        val id = SocketWriteHolder.generateClientId()
+        log.info("$id Connected Websocket Server!")
+        webSocket.writeTextMessage(Message(Message.CLIENT_ID_KEY, id).toString()) //先将id发回
+        socketHolder.addSocket(id, webSocket)
 
-          //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
-          vertx.eventBus().request<List<Message>>(EventbusAddress.READ_STORED_MESSAGES, null) { msgs ->
-            if (msgs.succeeded()) {
-              vertx.setTimer(3000) {
-                msgs.result().body().forEach { webSocket.writeTextMessage(it.toString()) }
-              }
+        //todo 将来有了账户之后，改成登陆之后，再将历史记录发回
+        vertx.eventBus().request<List<Message>>(EventbusAddress.READ_STORED_MESSAGES, null) { msgs ->
+          if (msgs.succeeded()) {
+            vertx.setTimer(3000) {
+              msgs.result().body().forEach { webSocket.writeTextMessage(it.toString()) }
             }
           }
-          webSocket.handler { buffer: Buffer ->
-            launch {
+        }
+
+        val stringBuilder = StringBuilder()
+        webSocket.frameHandler {
+          launch {
+            if (it.isText) stringBuilder.clear()
+
+            if (it.isText || it.isContinuation) stringBuilder.append(it.textData())
+
+            if (it.isFinal && stringBuilder.isNotEmpty()) {//必需加上is not empty，因为有时候客户端会发空的final frame过来
               try {
-                val json = buffer.toJsonObject()
-                //todo 后续放到frame handler里面去
-                processImagesInJson(json) //replace base64 with url
+                val json = JsonObject(stringBuilder.toString())
+
+                if (it.isContinuation) processImagesInJson(json)
+
                 log.debug("Message content: $json")
                 val message = Message(json).initServerSide(id, verticleID)
                 socketHolder.receiveMessage(webSocket, message)
@@ -57,9 +63,11 @@ class WebSocketVerticle : CoroutineVerticle() {
               } catch (e: Exception) {
                 webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, e.message).toString())
               }
+              stringBuilder.clear()
             }
-          }.closeHandler { socketHolder.removeSocket(webSocket) } //todo 补充frame handler
-        }.listen(port).await()
+          }
+        }.closeHandler { socketHolder.removeSocket(webSocket) }
+      }.listen(port).await()
 
       log.info("WebSocketVerticle deployed with verticle ID: $verticleID")
       log.info("WebSocketVerticle listen to port: $port")
