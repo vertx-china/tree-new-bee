@@ -1,9 +1,7 @@
 package io.github.vertxchina.persistverticle
 
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.net.ProxyOptions
 import io.vertx.ext.web.client.WebClient
-import io.vertx.ext.web.client.WebClientOptions
 import io.vertx.ext.web.multipart.MultipartForm
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.await
@@ -33,7 +31,7 @@ class TelegraphImgVerticle : CoroutineVerticle() {
           message.reply(url)
         } catch (e:Exception){
           e.printStackTrace()
-          message.reply(message.body())
+          message.reply(e.message)
         }
       }
     }
