@@ -19,7 +19,9 @@ import static io.github.vertxchina.eventbus.Message.MESSAGE_CONTENT_KEY;
 
 /**
  * @author Leibniz on 2022/03/10 1:05 PM
+ * Use WebSocketVerticle.kt instead
  */
+@Deprecated
 public class WebsocketServerVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(WebsocketServerVerticle.class);
   private final String VERTICLE_ID = UUID.randomUUID().toString();

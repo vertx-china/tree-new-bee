@@ -11,6 +11,7 @@ import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,16 @@ import java.util.concurrent.TimeUnit;
 class WebsocketServerVerticleTest {
   static Logger log = LoggerFactory.getLogger(WebsocketServerVerticleTest.class);
 
+//  @BeforeAll
+//  static void initialize(Vertx vertx, VertxTestContext testCtx) throws Exception{
+//    vertx.deployVerticle(MessageStoreVerticle.class.getName(), ar -> {
+//      if(ar.succeeded())
+//        testCtx.completeNow();
+//    });
+//
+//    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
+//  }
+
   @BeforeEach
   void init(Vertx vertx) {
     vertx.eventBus()
@@ -37,7 +48,7 @@ class WebsocketServerVerticleTest {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
-    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
+    vertx.deployVerticle("io.github.vertxchina.webverticle.WebSocketVerticle", new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, 1).get(0))
       .onSuccess(client -> {
@@ -59,7 +70,7 @@ class WebsocketServerVerticleTest {
     int port = 6666;
     int clientNum = 3;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
-    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
+    vertx.deployVerticle("io.github.vertxchina.webverticle.WebSocketVerticle", new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, clientNum))
       .compose(cf -> CompositeFuture.all(cast(sendMessages(vertx, cf, 1))))
       .onSuccess(closed -> {
@@ -82,7 +93,7 @@ class WebsocketServerVerticleTest {
     log.info("====> " + Thread.currentThread().getStackTrace()[1].getMethodName() + "() Start");
     int port = 9527;
     JsonObject config = new JsonObject().put("WebsocketServer.port", port);
-    vertx.deployVerticle(WebsocketServerVerticle.class, new DeploymentOptions().setConfig(config))
+    vertx.deployVerticle("io.github.vertxchina.webverticle.WebSocketVerticle", new DeploymentOptions().setConfig(config))
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
@@ -110,7 +121,7 @@ class WebsocketServerVerticleTest {
     DeploymentOptions deploymentOptions = new DeploymentOptions().setConfig(config);
     vertx
       .deployVerticle(MessageStoreVerticle.class, deploymentOptions)
-      .compose(did -> vertx.deployVerticle(WebsocketServerVerticle.class, deploymentOptions))
+      .compose(did -> vertx.deployVerticle("io.github.vertxchina.webverticle.WebSocketVerticle", deploymentOptions))
       .compose(did -> createClients(vertx, port, 1))
       .compose(cf -> sendMessages(vertx, cf, prevClientSendMsgNum).get(0))
       .compose(client -> {
