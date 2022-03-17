@@ -81,7 +81,7 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <version>1.6.10</version>
+                <version>${kotlin.version}</version>
                 <configuration>
                     <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
                 </configuration>

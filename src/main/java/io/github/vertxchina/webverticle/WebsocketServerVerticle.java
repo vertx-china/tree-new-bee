@@ -7,12 +7,13 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 import java.util.UUID;
 
-import static io.github.vertxchina.eventbus.EventbusAddress.PUBLISH_MESSAGE;
-import static io.github.vertxchina.eventbus.EventbusAddress.READ_STORED_MESSAGES;
+import static io.github.vertxchina.eventbus.EventbusAddress.*;
 import static io.github.vertxchina.eventbus.Message.CLIENT_ID_KEY;
 import static io.github.vertxchina.eventbus.Message.MESSAGE_CONTENT_KEY;
 
@@ -30,7 +31,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
 
     Integer port = config().getInteger("WebsocketServer.port", 32168);
 
-    vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024 * 64))
+    vertx.createHttpServer(new HttpServerOptions().setMaxWebSocketFrameSize(1024 * 1024 * 4))
         .webSocketHandler(webSocket -> {
           var id = SocketWriteHolder.generateClientId();
           log.info(id + " Connected Websocket Server!");
@@ -47,14 +48,19 @@ public class WebsocketServerVerticle extends AbstractVerticle {
           });
 
           webSocket.handler(buffer -> {
-            log.debug("Received message raw content: " + buffer);
+//            log.debug("Received message raw content: " + buffer);
             try {
-              var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
-              socketHolder.receiveMessage(webSocket, message);
-              if (message.hasMessage()) {
-                socketHolder.sendToOtherUsers(message);
-                vertx.eventBus().publish(PUBLISH_MESSAGE, message);
-              }
+              var json = buffer.toJsonObject();
+              //todo 后续放到frame handler里面去
+              processImagesInJson(json, ()->{
+                log.debug("Message content: "+json);
+                var message = new Message(json).initServerSide(id, VERTICLE_ID);
+                socketHolder.receiveMessage(webSocket, message);
+                if (message.hasMessage()) {
+                  socketHolder.sendToOtherUsers(message);
+                  vertx.eventBus().publish(PUBLISH_MESSAGE, message);
+                }
+              });//replace base64 with url
             } catch (Exception e) {
               webSocket.writeTextMessage(new Message(MESSAGE_CONTENT_KEY, e.getMessage()).toString());
             }
@@ -79,4 +85,27 @@ public class WebsocketServerVerticle extends AbstractVerticle {
           }
         });
   }
+
+  private void processImagesInJson(Object object, Runnable callback){
+    if(object instanceof JsonObject json){
+      if(json.containsKey("message"))
+        processImagesInJson(json.getValue("message"), callback);
+
+      if(json.containsKey("base64")){
+        var base64 = json.getString("base64");
+        vertx.eventBus().<String>request(TELEGRAPH_ADDRESS, base64)
+          .onComplete(result -> {
+            json.remove("base64");
+            json.put("url",result.succeeded() ? result.result().body():result.cause().getMessage());
+            callback.run();
+          });
+      }
+//    }else if(object instanceof JsonArray array){// todo 先不做，需改成kotlin后用await实现，基于callback的复合写起来太复杂了
+//      var list = array.getList();
+//      for(var o:list)
+//        processImagesInJson(o, callback);
+    }else callback.run();
+  }
+
+
 }

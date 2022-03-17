@@ -44,7 +44,7 @@ public class TcpServerVerticle extends AbstractVerticle {
         });
 
         socket.handler(RecordParser.newDelimited(DELIM, buffer -> {
-          log.debug("Received message raw content: " + buffer);
+          log.debug("Message raw content: " + buffer);
           try {
             var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
             socketHolder.receiveMessage(socket, message);
