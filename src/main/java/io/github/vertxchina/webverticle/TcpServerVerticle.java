@@ -43,21 +43,28 @@ public class TcpServerVerticle extends AbstractVerticle {
           }
         });
 
-        socket.handler(RecordParser.newDelimited(DELIM, buffer -> {
-          log.debug("Message raw content: " + buffer);
-          try {
-            var message = new Message(buffer).initServerSide(id, VERTICLE_ID);
-            socketHolder.receiveMessage(socket, message);
-            if (message.hasMessage()) {
-              socketHolder.sendToOtherUsers(message);
-              vertx.eventBus().publish(PUBLISH_MESSAGE, message);
-            }
-          } catch (Exception e) {
-            writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, e.getMessage()));
-          }
-        }).maxRecordSize(1024 * 64));
-
-        socket.closeHandler(v -> socketHolder.removeSocket(socket));
+        socket
+          .exceptionHandler(t -> socket.close())
+          .closeHandler(v -> socketHolder.removeSocket(socket))
+          .handler(
+            RecordParser.newDelimited(DELIM)
+              .maxRecordSize(1024 * 64)
+              .exceptionHandler(throwable -> writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, throwable.getMessage())))
+              .handler(buffer -> {
+                log.debug("Message raw content: " + buffer);
+                try {
+                  var json = buffer.toJsonObject();
+                  var message = new Message(json).initServerSide(id, VERTICLE_ID);
+                  socketHolder.receiveMessage(socket, message);
+                  if (message.hasMessage()) {
+                    socketHolder.sendToOtherUsers(message);
+                    vertx.eventBus().publish(PUBLISH_MESSAGE, message);
+                  }
+                }catch (Exception e){
+                  writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, e.getMessage()));
+                }
+              })
+          );
       })
       .listen(port)
       .onSuccess(s -> {
@@ -77,6 +84,10 @@ public class TcpServerVerticle extends AbstractVerticle {
           socketHolder.publishMessage(tnbMsg);
         }
       });
+
+    vertx.exceptionHandler(e -> {
+      e.printStackTrace();
+    });
   }
 
   private void writeSocket(NetSocket socket, Message message) {

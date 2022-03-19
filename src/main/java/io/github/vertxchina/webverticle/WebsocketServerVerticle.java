@@ -102,7 +102,7 @@ public class WebsocketServerVerticle extends AbstractVerticle {
             callback.run();
           });
       }
-//    }else if(object instanceof JsonArray array){// todo 先不做，需改成kotlin后用await实现，基于callback的复合写起来太复杂了
+//    }else if(object instanceof JsonArray array){//不做，需改成kotlin后用await实现，基于callback的复合写起来太复杂了
 //      var list = array.getList();
 //      for(var o:list)
 //        processImagesInJson(o, callback);

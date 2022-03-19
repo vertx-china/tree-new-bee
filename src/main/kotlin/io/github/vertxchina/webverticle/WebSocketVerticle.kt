@@ -41,7 +41,10 @@ class WebSocketVerticle : CoroutineVerticle() {
         }
 
         val stringBuilder = StringBuilder()
-        webSocket.frameHandler {
+        webSocket
+          .exceptionHandler { webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, it.message).toString()) }
+          .closeHandler { socketHolder.removeSocket(webSocket) }
+          .frameHandler {
           launch {
             if (it.isText) stringBuilder.clear()
 
@@ -66,7 +69,8 @@ class WebSocketVerticle : CoroutineVerticle() {
               stringBuilder.clear()
             }
           }
-        }.closeHandler { socketHolder.removeSocket(webSocket) }
+        }
+
       }.listen(port).await()
 
       log.info("WebSocketVerticle deployed with verticle ID: $verticleID")
