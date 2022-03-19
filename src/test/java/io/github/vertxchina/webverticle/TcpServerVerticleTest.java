@@ -11,6 +11,7 @@ import io.vertx.core.net.NetSocket;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,11 +29,12 @@ import static io.github.vertxchina.webverticle.TcpServerVerticle.DELIM;
 @ExtendWith(VertxExtension.class)
 public class TcpServerVerticleTest {
   static Logger log = LoggerFactory.getLogger(TcpServerVerticleTest.class);
-  
-  @BeforeEach
-  void init(Vertx vertx) {
-    vertx.eventBus()
-      .registerDefaultCodec(Message.class, new TnbMessageCodec());
+
+  @BeforeAll
+  static void initialize(Vertx vertx, VertxTestContext testCtx) throws Exception{
+    vertx.exceptionHandler(Throwable::printStackTrace);
+    vertx.eventBus().registerDefaultCodec(Message.class, new TnbMessageCodec());
+    testCtx.completeNow();
   }
 
   @Test
@@ -91,14 +93,14 @@ public class TcpServerVerticleTest {
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
-        assert msgList.size() == 1; //发送错误消息应返回解析错误消息
-        var stacktrace = msgList.get(0);
-        log.info(stacktrace);
+        assert msgList.size() == 0; //错误消息仅在后台存日志处理
+//        var stacktrace = msgList.get(0);
+//        log.info(stacktrace);
         testCtx.completeNow();
       })
       .onFailure(testCtx::failNow);
 
-    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
+    assert testCtx.awaitCompletion(5, TimeUnit.SECONDS);
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }

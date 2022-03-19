@@ -51,20 +51,16 @@ class WebSocketVerticle : CoroutineVerticle() {
             if (it.isText || it.isContinuation) stringBuilder.append(it.textData())
 
             if (it.isFinal && stringBuilder.isNotEmpty()) {//必需加上is not empty，因为有时候客户端会发空的final frame过来
-              try {
-                val json = JsonObject(stringBuilder.toString())
+              val json = JsonObject(stringBuilder.toString())
 
-                if (it.isContinuation) processImagesInJson(json)
+              if (it.isContinuation) processImagesInJson(json)
 
-                log.debug("Message content: $json")
-                val message = Message(json).initServerSide(id, verticleID)
-                socketHolder.receiveMessage(webSocket, message)
-                if (message.hasMessage()) {
-                  socketHolder.sendToOtherUsers(message)
-                  vertx.eventBus().publish(EventbusAddress.PUBLISH_MESSAGE, message)
-                }
-              } catch (e: Exception) {
-                webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, e.message).toString())
+              log.debug("Message content: $json")
+              val message = Message(json).initServerSide(id, verticleID)
+              socketHolder.receiveMessage(webSocket, message)
+              if (message.hasMessage()) {
+                socketHolder.sendToOtherUsers(message)
+                vertx.eventBus().publish(EventbusAddress.PUBLISH_MESSAGE, message)
               }
               stringBuilder.clear()
             }

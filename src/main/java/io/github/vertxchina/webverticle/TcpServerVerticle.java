@@ -52,16 +52,12 @@ public class TcpServerVerticle extends AbstractVerticle {
               .exceptionHandler(throwable -> writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, throwable.getMessage())))
               .handler(buffer -> {
                 log.debug("Message raw content: " + buffer);
-                try {
-                  var json = buffer.toJsonObject();
-                  var message = new Message(json).initServerSide(id, VERTICLE_ID);
-                  socketHolder.receiveMessage(socket, message);
-                  if (message.hasMessage()) {
-                    socketHolder.sendToOtherUsers(message);
-                    vertx.eventBus().publish(PUBLISH_MESSAGE, message);
-                  }
-                }catch (Exception e){
-                  writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, e.getMessage()));
+                var json = buffer.toJsonObject();
+                var message = new Message(json).initServerSide(id, VERTICLE_ID);
+                socketHolder.receiveMessage(socket, message);
+                if (message.hasMessage()) {
+                  socketHolder.sendToOtherUsers(message);
+                  vertx.eventBus().publish(PUBLISH_MESSAGE, message);
                 }
               })
           );
