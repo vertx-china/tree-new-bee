@@ -42,7 +42,7 @@ class WebSocketVerticle : CoroutineVerticle() {
 
         val stringBuilder = StringBuilder()
         webSocket
-          .exceptionHandler { webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, it.message).toString()) }
+          .exceptionHandler { if(!webSocket.isClosed) webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, it.message).toString()) }
           .closeHandler { socketHolder.removeSocket(webSocket) }
           .frameHandler {
           launch {
