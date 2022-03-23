@@ -152,7 +152,6 @@ public class TcpServerVerticleTest {
       if (o instanceof TreeNewBeeClient client) {
         var socket = client.socket;
         socket.write(client.id + "\r\n");
-        System.out.println(client.id + "sent");
         Promise<List<String>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {

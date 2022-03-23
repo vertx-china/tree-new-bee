@@ -5,6 +5,7 @@ import io.github.vertxchina.eventbus.Message
 import io.github.vertxchina.persistverticle.TelegraphImgVerticle
 import io.vertx.core.http.HttpServerOptions
 import io.vertx.core.http.ServerWebSocket
+import io.vertx.core.http.WebSocketFrame
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
@@ -45,29 +46,32 @@ class WebSocketVerticle : CoroutineVerticle() {
           .exceptionHandler { if(!webSocket.isClosed) webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, it.message).toString()) }
           .closeHandler { socketHolder.removeSocket(webSocket) }
           .frameHandler {
-          launch {
-            //need coroutine handler see the issue here: https://github.com/vert-x3/vertx-lang-kotlin/issues/194
-            if (it.isText) stringBuilder.clear()
+            launch {
+              customHandler({
+                //need coroutine handler to make code easier. see the issue here: https://github.com/vert-x3/vertx-lang-kotlin/issues/194
+                if (it.isText) stringBuilder.clear()
 
-            if (it.isText || it.isContinuation) stringBuilder.append(it.textData())
+                if (it.isText || it.isContinuation) stringBuilder.append(it.textData())
 
-            if (it.isFinal && stringBuilder.isNotEmpty()) {//必需加上is not empty，因为有时候客户端会发空的final frame过来
-              val json = JsonObject(stringBuilder.toString())
+                if (it.isFinal && stringBuilder.isNotEmpty()) {//必需加上is not empty，因为有时候客户端会发空的final frame过来
+                  val json = JsonObject(stringBuilder.toString())
 
-              if (it.isContinuation) processImagesInJson(json)
+                  if (it.isContinuation) processImagesInJson(json)
 
-              log.debug("Message content: $json")
-              val message = Message(json).initServerSide(id, verticleID)
-              socketHolder.receiveMessage(webSocket, message)
-              if (message.hasMessage()) {
-                socketHolder.sendToOtherUsers(message)
-                vertx.eventBus().publish(EventbusAddress.PUBLISH_MESSAGE, message)
-              }
-              stringBuilder.clear()
+                  log.debug("Message content: $json")
+                  val message = Message(json).initServerSide(id, verticleID)
+                  socketHolder.receiveMessage(webSocket, message)
+                  if (message.hasMessage()) {
+                    socketHolder.sendToOtherUsers(message)
+                    vertx.eventBus().publish(EventbusAddress.PUBLISH_MESSAGE, message)
+                  }
+                  stringBuilder.clear()
+                }
+              }){
+                webSocket.writeTextMessage(Message(Message.MESSAGE_CONTENT_KEY, it.message).toString())
+              }()
             }
           }
-        }
-
       }.listen(port).await()
 
       log.info("WebSocketVerticle deployed with verticle ID: $verticleID")

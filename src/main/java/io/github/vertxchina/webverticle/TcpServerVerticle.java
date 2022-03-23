@@ -60,8 +60,7 @@ public class TcpServerVerticle extends AbstractVerticle {
                   }
                 },
                 throwable -> writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, throwable.getMessage()))
-              )
-            )
+              ))
           );
       })
       .listen(port)

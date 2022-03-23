@@ -87,9 +87,9 @@ class WebsocketServerVerticleTest {
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
-        assert msgList.size() == 0;
-//        var stacktrace = msgList.get(0).getString("message");
-//        log.info(stacktrace);
+        assert msgList.size() == 1;
+        var stacktrace = msgList.get(0).getString("message");
+        log.info(stacktrace);
         testCtx.completeNow();
       })
       .onFailure(testCtx::failNow);
