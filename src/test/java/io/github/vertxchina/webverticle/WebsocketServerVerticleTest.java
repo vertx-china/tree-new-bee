@@ -29,7 +29,6 @@ class WebsocketServerVerticleTest {
 
   @BeforeAll
   static void initialize(Vertx vertx, VertxTestContext testCtx) throws Exception{
-    vertx.exceptionHandler(Throwable::printStackTrace);
     vertx.eventBus().registerDefaultCodec(Message.class, new TnbMessageCodec());
     testCtx.completeNow();
   }
@@ -88,14 +87,14 @@ class WebsocketServerVerticleTest {
       .compose(did -> createClients(vertx, port, 1))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
-        assert msgList.size() == 0; //错误消息仅在后台存日志处理
+        assert msgList.size() == 0;
 //        var stacktrace = msgList.get(0).getString("message");
 //        log.info(stacktrace);
         testCtx.completeNow();
       })
       .onFailure(testCtx::failNow);
 
-    assert testCtx.awaitCompletion(5, TimeUnit.SECONDS);
+    assert testCtx.awaitCompletion(10, TimeUnit.SECONDS);
     if (testCtx.failed()) {
       throw testCtx.causeOfFailure();
     }

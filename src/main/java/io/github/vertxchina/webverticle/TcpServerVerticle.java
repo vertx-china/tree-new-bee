@@ -47,19 +47,21 @@ public class TcpServerVerticle extends AbstractVerticle {
           .exceptionHandler(t -> socket.close())
           .closeHandler(v -> socketHolder.removeSocket(socket))
           .handler(
-            RecordParser.newDelimited(DELIM)
-              .maxRecordSize(1024 * 64)
-              .exceptionHandler(throwable -> writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, throwable.getMessage())))
-              .handler(buffer -> {
-                log.debug("Message raw content: " + buffer);
-                var json = buffer.toJsonObject();
-                var message = new Message(json).initServerSide(id, VERTICLE_ID);
-                socketHolder.receiveMessage(socket, message);
-                if (message.hasMessage()) {
-                  socketHolder.sendToOtherUsers(message);
-                  vertx.eventBus().publish(PUBLISH_MESSAGE, message);
-                }
-              })
+            RecordParser.newDelimited(DELIM).maxRecordSize(1024 * 64)
+              .handler(CustomHandler.handler(
+                buffer -> {
+                  log.debug("Message raw content: " + buffer);
+                  var json = buffer.toJsonObject();
+                  var message = new Message(json).initServerSide(id, VERTICLE_ID);
+                  socketHolder.receiveMessage(socket, message);
+                  if (message.hasMessage()) {
+                    socketHolder.sendToOtherUsers(message);
+                    vertx.eventBus().publish(PUBLISH_MESSAGE, message);
+                  }
+                },
+                throwable -> writeSocket(socket, new Message(MESSAGE_CONTENT_KEY, throwable.getMessage()))
+              )
+            )
           );
       })
       .listen(port)
@@ -80,10 +82,6 @@ public class TcpServerVerticle extends AbstractVerticle {
           socketHolder.publishMessage(tnbMsg);
         }
       });
-
-    vertx.exceptionHandler(e -> {
-      e.printStackTrace();
-    });
   }
 
   private void writeSocket(NetSocket socket, Message message) {

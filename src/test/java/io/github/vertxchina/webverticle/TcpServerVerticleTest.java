@@ -6,6 +6,7 @@ import io.github.vertxchina.persistverticle.MessageStoreVerticle;
 import io.vertx.core.*;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.parsetools.RecordParser;
@@ -32,7 +33,11 @@ public class TcpServerVerticleTest {
 
   @BeforeAll
   static void initialize(Vertx vertx, VertxTestContext testCtx) throws Exception{
-    vertx.exceptionHandler(Throwable::printStackTrace);
+
+//    vertx.exceptionHandler(e -> System.out.println(11111));
+
+//    vertx.getOrCreateContext().exceptionHandler(e -> System.out.println(222222));
+
     vertx.eventBus().registerDefaultCodec(Message.class, new TnbMessageCodec());
     testCtx.completeNow();
   }
@@ -90,12 +95,12 @@ public class TcpServerVerticleTest {
     int port = 9527;
     JsonObject config = new JsonObject().put("TcpServer.port", port);
     vertx.deployVerticle(TcpServerVerticle.class, new DeploymentOptions().setConfig(config))
-      .compose(did -> createClients(vertx, port, 1))
+      .compose(did -> createClients(vertx, port, 2))
       .compose(ar -> sendErrorMessages(vertx, ar).get(0))
       .onSuccess(msgList -> {
-        assert msgList.size() == 0; //错误消息仅在后台存日志处理
-//        var stacktrace = msgList.get(0);
-//        log.info(stacktrace);
+        assert msgList.size() == 1;
+        var stacktrace = msgList.get(0);
+        log.info(stacktrace);
         testCtx.completeNow();
       })
       .onFailure(testCtx::failNow);
@@ -146,7 +151,8 @@ public class TcpServerVerticleTest {
     for (Object o : ar.list()) {
       if (o instanceof TreeNewBeeClient client) {
         var socket = client.socket;
-        socket.write("fjdslkjlfa\r\n");
+        socket.write(client.id + "\r\n");
+        System.out.println(client.id + "sent");
         Promise<List<String>> promise = Promise.promise();
         closeFutures.add(promise.future());
         socket.closeHandler(v -> {

@@ -46,6 +46,7 @@ class WebSocketVerticle : CoroutineVerticle() {
           .closeHandler { socketHolder.removeSocket(webSocket) }
           .frameHandler {
           launch {
+            //need coroutine handler see the issue here: https://github.com/vert-x3/vertx-lang-kotlin/issues/194
             if (it.isText) stringBuilder.clear()
 
             if (it.isText || it.isContinuation) stringBuilder.append(it.textData())
