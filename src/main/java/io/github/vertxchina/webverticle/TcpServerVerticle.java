@@ -48,7 +48,7 @@ public class TcpServerVerticle extends AbstractVerticle {
           .closeHandler(v -> socketHolder.removeSocket(socket))
           .handler(
             RecordParser.newDelimited(DELIM).maxRecordSize(1024 * 64)
-              .handler(CustomHandler.handler(
+              .handler(CustomHandler.handle(
                 buffer -> {
                   log.debug("Message raw content: " + buffer);
                   var json = buffer.toJsonObject();

@@ -5,7 +5,6 @@ import io.github.vertxchina.eventbus.Message
 import io.github.vertxchina.persistverticle.TelegraphImgVerticle
 import io.vertx.core.http.HttpServerOptions
 import io.vertx.core.http.ServerWebSocket
-import io.vertx.core.http.WebSocketFrame
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
@@ -47,7 +46,7 @@ class WebSocketVerticle : CoroutineVerticle() {
           .closeHandler { socketHolder.removeSocket(webSocket) }
           .frameHandler {
             launch {
-              customHandler({
+              handle({
                 //need coroutine handler to make code easier. see the issue here: https://github.com/vert-x3/vertx-lang-kotlin/issues/194
                 if (it.isText) stringBuilder.clear()
 
