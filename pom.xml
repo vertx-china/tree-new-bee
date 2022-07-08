@@ -12,7 +12,7 @@
     <properties>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
-        <kotlin.version>1.7.0</kotlin.version>
+        <kotlin.version>1.7.10</kotlin.version>
         <kotlin.compiler.jvmTarget>18</kotlin.compiler.jvmTarget>
         <vertx.version>4.3.2</vertx.version>
         <vertx.verticle>io.github.vertxchina.MainVerticle</vertx.verticle>
