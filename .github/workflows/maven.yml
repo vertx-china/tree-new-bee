@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up JDK
       uses: oracle-actions/setup-java@v1
       with:
@@ -27,7 +27,7 @@ jobs:
         release: 19
     - name: Build with Maven
       run: mvn package -f pom.xml
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: tree-new-bee
         path: /home/runner/work/tree-new-bee/tree-new-bee/target/tree-new-bee*
